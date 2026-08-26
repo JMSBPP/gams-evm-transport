@@ -1512,8 +1512,18 @@ purge_known_extensions = [".hs", ".json", ".md", ".sh", ".sql", ".txt"]
 --
 -- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 82
+-- RE-MEASURED COLD for the final-review fix wave (2026-08-26), in the same sitting as
+-- 'credential_scan_floor' and by RUNNING the command rather than assuming the drift: 85 against
+-- exactly 85, zero slack. Census under this tree at that measurement: @hs 66, sh 14, sql 5@. This
+-- is a CATCH-UP re-measurement, not a change earned by this wave's own edits: the floor had gone
+-- stale relative to the tree -- rig/plank-root.sh and the scripts that followed it landed without
+-- a floor bump -- and this wave itself adds no new @.hs@\/@.sh@\/@.sql@ file (it only edits
+-- existing ones).
+--
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > 85
 purge_file_floor :: Int
-purge_file_floor = 84
+purge_file_floor = 85
 
 -- | The EXECUTABLE surface: what the literal purge scans. Explicit, because the repository
 -- root now also holds the cfmm-numopt submodule (.gms, Makefile, CI), docs/ and .github/,
@@ -4749,13 +4759,13 @@ reason_plank_root_resolves_verbatim_and_refuses_nothing =
   \ by fixture_dir_rule_assertions with both Nothing and Just on both arguments, which is a\
   \ stronger guarantee than probe_override's single bogus-path probe would have given it."
 
--- | THE TWO CONFIG MODULES' FIVE VARIABLES, AND WHERE THE LIST ITSELF IS ASSERTED.
+-- | THE TWO CONFIG MODULES' NINE VARIABLES, AND WHERE THE LIST ITSELF IS ASSERTED.
 --
 -- Each variable is paired with the NAME OF THE CONSTANT that holds it, because the pair is what
 -- makes the list checkable: the value side is compared against the override lists, and the
 -- identifier side is compared against a census of the declarations in the config modules
 -- themselves. Without the second comparison this list is a transcription with no growth guard --
--- a sixth variable could be added to either module and every assertion below would go on passing,
+-- a tenth variable could be added to either module and every assertion below would go on passing,
 -- which is the advertised-and-dead defect one level up from the one the sweep already catches.
 config_env_vars :: [(String, String)]
 config_env_vars =
@@ -8692,8 +8702,19 @@ credential_scan roots =
 --
 -- > find lib app test rig migrations spec LOOP.md todo.md -type f \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) | wc -l
 -- > 95
+-- RE-MEASURED COLD for the final-review fix wave (2026-08-26), in the same sitting as
+-- 'purge_file_floor' and by RUNNING the command, now WITH README.md among the roots (@repo_roots@
+-- has carried it since Task 7 and 'existing_roots' tolerates it either way): 96 against exactly
+-- 96, zero slack. Census under this tree at that measurement: @hs 66, sh 14, sql 5, json 11@. Like
+-- its twin above, this is a CATCH-UP re-measurement for drift already present in the tree, not a
+-- change earned by this wave's own edits -- the wave adds no new @.hs@\/@.sh@\/@.sql@\/@.json@
+-- file; README.md's new @ETH_RPC_URL@ row is @.md@, and neither this scan nor 'purge_file_floor'
+-- reads that extension.
+--
+-- > find lib app test rig migrations spec LOOP.md todo.md README.md -type f \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) | wc -l
+-- > 96
 credential_scan_floor :: Int
-credential_scan_floor = 95
+credential_scan_floor = 96
 
 -- | The seeded bait, BUILT for the same reason the pattern is.
 credential_bait_source :: String
