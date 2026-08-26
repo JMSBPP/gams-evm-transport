@@ -41,6 +41,35 @@ cabal build --enable-tests -j all && RIG_TESTS=1 cabal test
 RIG_SEED=123456789 cabal run gams-evm-transport
 ```
 
+**`check-upstream.sh` RE-PINS `rig/import-ref.txt` EVERY TIME IT RUNS, and that is not a
+standalone action.** `rig/import-ref.txt` names the ref THREE COMMITTED ARTIFACTS were captured
+from — `rig/rig-pins.json` (`generatedFrom`), `rig/chain-read-conformance.json`
+(`generatedFrom`), and, transitively, everything `cabal test` checks against them. Running
+`check-upstream.sh` on its own moves `import-ref.txt` to whatever `origin/develop` resolves to
+at that moment, WITHOUT moving those other two artifacts — and the moment it does,
+`sc4_generated_from_is_the_imported_ref` and `the_pinned_read_held_while_the_unpinned_read_moved`
+in the bare `cabal test` suite go red, because they compare each artifact's recorded ref against
+the (now different) tree. So `check-upstream.sh` is never a step to run by itself: it is the
+FIRST step of the full `rig-e2e` re-pin cycle, and every time it moves the ref, the cycle must be
+completed in the same pass —
+
+1. `rig/check-upstream.sh` (moves `import-ref.txt`)
+2. `rig/generate-pins.sh` (re-takes `rig/rig-pins.json` against the new ref — cheap: `cast
+   sig`/`cast keccak` only, no live chain)
+3. `rig/verify-import.sh`, `rig/deploy-rig.sh`, `rig/verify-rig.sh` (stand the rig up against
+   the new ref)
+4. `rig/capture-chain-read.sh` (re-takes `rig/chain-read-conformance.json` against the standing
+   rig — and every other `rig/capture-*.sh` this ref's evidence depends on)
+
+all committed together, in the ONE commit that re-pins `import-ref.txt`. This is exactly what
+Task 8's `rig-e2e` does; it is why the CI merge gate's bare tier (`env -u PLANK_ROOT -u RIG_TESTS
+cabal test`) never re-pins on its own — a developer running `check-upstream.sh` locally out of
+curiosity, or as a standalone freshness probe, leaves the ref changed in the working tree and
+MUST NOT commit that change alone. If you need to check whether `origin/develop` has moved
+without committing anything, run `check-upstream.sh` and then `git diff rig/import-ref.txt` (or
+`git checkout -- rig/import-ref.txt` to discard the probe) rather than committing a partial
+re-pin.
+
 **CI's `rig-e2e` job** runs this same sequence on a self-hosted runner whose `PLANK_ROOT` is a
 DEDICATED checkout, never a developer's own worktree: `deploy-rig.sh` writes `broadcast/` and
 `npm ci` writes `node_modules/` INSIDE `$PLANK_ROOT`, both of which mutate that checkout's working

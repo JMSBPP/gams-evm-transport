@@ -301,3 +301,42 @@ measured bare-suite result after Task 6's changes, not 232/232. `rig/chain-read-
 needs a live re-take (`bash rig/deploy-rig.sh && bash rig/capture-chain-read.sh`) against a rig
 built from `$PLANK_ROOT` at `d2b1c518...`, which is exactly what Task 8's `rig-e2e` is positioned to
 do — this finding is left for that task rather than worked around here.
+
+**Controller ruling — the re-pin above was measured and then REVERTED.** The reasoning in the two
+paragraphs above is correct as a measurement (231/232 IS what a partial re-pin produces, and the
+`rig-pins.json` regeneration IS zero-blast-radius by itself), but the brief's instruction to
+commit the re-pin as a standalone Task 6 action was a plan defect: `rig/import-ref.txt` records
+the ref the COMMITTED artifacts (`rig-pins.json`, `chain-read-conformance.json`, and everything
+downstream of them) were captured from, so it may only move when ALL of them are re-captured
+together — that is the `rig-e2e` cycle, Task 8's job, not a side effect of wiring `PLANK_ROOT`
+resolution. The bare tier-1 suite is CI's merge gate and must be 232/232, unconditionally; the
+"231/232, honestly reported" outcome recorded above is not an acceptable end state for a merge
+gate no matter how well-evidenced the one remaining failure is.
+
+Reverted with `git checkout a19f3e8 -- rig/import-ref.txt rig/rig-pins.json` — both files are now
+byte-identical to their state at `a19f3e8` (Task 6's start-of-work HEAD): `git diff a19f3e8 --
+rig/import-ref.txt rig/rig-pins.json` is empty. `rig/chain-read-conformance.json` was never
+touched in either direction. Re-verified after the revert:
+
+```
+232/232 checks passed
+SC-3 and SC-4 OK
+Test suite gams-evm-transport-test: PASS
+```
+
+and the Step 3 refusal table (`env -u PLANK_ROOT bash rig/<s>.sh` for all 9 scripts, plus
+`PLANK_ROOT=/nonexistent bash rig/check-upstream.sh` and `env -u PLANK_ROOT bash rig/deploy-rig.sh
+--stop`) is unchanged from Task 6's original measurement — the `PLANK_ROOT` wiring itself is not
+implicated by this revert; only the decision to *exercise* `check-upstream.sh`'s re-pinning
+behavior as a standalone, committed action was wrong.
+
+`check-upstream.sh` keeps its re-pinning behavior unchanged — that is correct and is what the
+script is FOR — but `rig/README.md`'s clean-machine sequence now states explicitly that a
+`check-upstream.sh` run which actually moves `import-ref.txt` must be followed, in the same
+commit, by `generate-pins.sh` + a full rig stand-up + `capture-chain-read.sh` (and every other
+ref-dependent capture) before that move is committed; a bare `check-upstream.sh` probe that finds
+no drift, or whose result is discarded (`git checkout -- rig/import-ref.txt`), is fine on its own.
+No dry-run flag was added to `check-upstream.sh` — the controller ruling was explicit that
+documentation is the fix here, not new script behavior. Remediation for `rig/import-ref.txt`
+actually moving to `d2b1c518...` (origin/develop's current tip, confirmed live during this task)
+is the full `rig-e2e` cycle in Task 8.
