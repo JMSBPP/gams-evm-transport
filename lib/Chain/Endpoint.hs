@@ -397,6 +397,11 @@ endpoint_sites =
       \ thirty-first instance of prose caught by the pattern, and the first caught by the develop\
       \ gate rather than locally: it was committed after the suite's last run. Declared, as the\
       \ thirty before it were."
+  , EndpointSite "README.md" Transcript
+      "The repo-level overview. Its Environment table now names ETH_RPC_URL and its default\
+      \ directly rather than deferring the whole row to LOOP.md, so the census sees it; it\
+      \ executes nothing itself. Declared, the same ruling as spec/types.md, rig/README.md and\
+      \ LOOP.md above it."
   , EndpointSite "test/Main.hs" Census
       "The suite. Names the resolver in order to assert about it, and is asserted to name none of\
       \ chain_reaching_terms -- README.md's claim that cabal test opens no socket, made\

@@ -71,7 +71,7 @@ refused with a named exit, never silently defaulted.
 
 | Variable | Default | Notes |
 |---|---|---|
-| *(the endpoint variable — see `LOOP.md` §2)* | *(a local node — see `LOOP.md` §2)* | The one endpoint authority; the shell scripts under `rig/` state the same default, and the test suite asserts the two are byte-equal. |
+| `ETH_RPC_URL` | `http://127.0.0.1:8545` | The one endpoint authority; the shell scripts under `rig/` state the same default, and the test suite asserts the two are byte-equal. See `LOOP.md` §2 for the resolver. |
 | `PGSTORE_DSN` | *(empty — the loop will not start)* | **Required.** Store + ledger connection. The loop runs migrations `001`–`004` itself at startup. |
 | `PLANK_ROOT` | *(unset)* | Optional. A checkout of `JMSBPP/cfmm-replicationPlank` with an `origin` remote. When set, the default publication directory resolves under it, and the monorepo-contract checks in `cabal test` run instead of being skipped by name. |
 | `FIXTURE_DIR` | derived under `PLANK_ROOT` when set, else the same path relative to the working directory | Publication directory. The loop never creates it. |
