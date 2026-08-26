@@ -9,7 +9,7 @@ split across layered repositories:
 |---|---|---|
 | Formalization | `JMSBPP/cfmm-vol-markets-spec` (ex `cfmm-lean4-spec`) | Lean 4 |
 | Numerical optimization | `JMSBPP/cfmm-numopt` (ex `cfmm-gams`) | GAMS only |
-| **Transport (this repo)** | `JMSBPP/gams-evm-transport` | Haskell |
+| **Transport (this repo)** | `d2p-finance/gams-evm-transport (dev fork: JMSBPP/gams-evm-transport)` | Haskell |
 | Consumers | forge tests / scripts in the monorepo and successors | Solidity |
 
 ## What is here
@@ -105,6 +105,19 @@ RIG_TESTS=1 cabal test
 
 See `LOOP.md` for the resident daemon's full operator's manual (invocation, startup preconditions,
 per-block output, exit codes) and `rig/README.md` for the clean-machine rig setup sequence.
+
+## Contributing / Workflow
+
+**Fork → PR workflow (d2p-finance canonical):** the `d2p-finance` GitHub org owns the
+CANONICAL/upstream repos; the `JMSBPP/*` repos are the develop FORKS. ALL changes are made on
+the `JMSBPP/*` forks and reach the `d2p-finance/*` canonical repos ONLY through pull requests
+(fork → upstream). Never commit or push directly to a `d2p-finance` canonical repo — open a PR
+from the JMSBPP fork.
+
+For this repo: canonical is `https://github.com/d2p-finance/gams-evm-transport.git`
+(`upstream`); develop fork is `https://github.com/JMSBPP/gams-evm-transport.git` (`origin`).
+CI (`haskell.yml`) runs on the canonical repo on pull requests to `main`, gated by the
+`transport-gate` environment; the self-hosted runner is registered there.
 
 ## Provenance
 
