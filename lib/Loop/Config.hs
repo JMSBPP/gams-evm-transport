@@ -50,6 +50,10 @@ module Loop.Config
   , default_fixture_path
   , fixture_dir_from
   , fixture_dir
+  , plank_root_env_var
+  , plank_root_from
+  , plank_root
+  , fixture_dir_with_root
     -- * The first block a loop with no watermark starts at
   , loop_first_block
     -- * What stops a running loop
@@ -185,9 +189,36 @@ fixture_dir_from :: Maybe String -> FilePath
 fixture_dir_from (Just raw) | not (null raw) = raw
 fixture_dir_from _                           = default_fixture_dir
 
+-- | The monorepo checkout this bridge PUBLISHES INTO and whose contracts the suite asserts
+-- against. Stated once, here, in the shape of every other override of this subsystem: a name
+-- constant, a pure rule over what @lookupEnv@ hands back, an @IO@ resolver that reads the name.
+--
+-- It is OPTIONAL on purpose. Unset, the bridge and the suite still build, run and pass for
+-- everything that is this repository's own; what needs the monorepo is gated on it and says so
+-- by name. Set, it must be a checkout of JMSBPP/cfmm-replicationPlank with an @origin@ remote.
+plank_root_env_var :: String
+plank_root_env_var = "PLANK_ROOT"
+
+-- | Absent and empty both mean "no monorepo here" -- 'fixture_dir_from' explains why the empty
+-- case cannot be told apart from the absent one from inside this process.
+plank_root_from :: Maybe String -> Maybe FilePath
+plank_root_from (Just raw) | not (null raw) = Just raw
+plank_root_from _                           = Nothing
+
+plank_root :: IO (Maybe FilePath)
+plank_root = plank_root_from <$> lookupEnv plank_root_env_var
+
+-- | THE RESOLUTION ORDER: an explicit @FIXTURE_DIR@ wins; else the consumer's own default
+-- joined under @PLANK_ROOT@; else that default relative to the working directory, where the
+-- LOOP-04 precondition (exit 40, directory missing) fires exactly as documented.
+fixture_dir_with_root :: Maybe FilePath -> Maybe String -> FilePath
+fixture_dir_with_root _ (Just raw) | not (null raw) = raw
+fixture_dir_with_root (Just root) _                  = root </> default_fixture_dir
+fixture_dir_with_root Nothing _                      = default_fixture_dir
+
 -- | The rule, through the environment.
 fixture_dir :: IO FilePath
-fixture_dir = fixture_dir_from <$> lookupEnv fixture_dir_env_var
+fixture_dir = fixture_dir_with_root <$> plank_root <*> lookupEnv fixture_dir_env_var
 
 -- ---------------------------------------------------------------------------------------------
 -- The first block

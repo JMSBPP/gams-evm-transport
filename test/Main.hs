@@ -241,10 +241,14 @@ import Loop.Config
   , fixture_dir
   , fixture_dir_env_var
   , fixture_dir_from
+  , fixture_dir_with_root
   , fixture_file_name
   , loop_first_block
   , loop_poll_ms
   , loop_poll_ms_env_var
+  , plank_root
+  , plank_root_env_var
+  , plank_root_from
   , poll_ms_from
   )
 -- 28-03's publication. Imported for its PURE CORE as much as for the edge: 'publish_bytes' is
@@ -4392,12 +4396,25 @@ fixture_dir_rule_assertions = do
                  == "/tmp/a-directory-nobody-declared")
          (fixture_dir_env_var ++ " does not return a set value verbatim: it answered "
            ++ show (fixture_dir_from (Just "/tmp/a-directory-nobody-declared")) ++ ".")
-  expect (default_fixture_path == default_fixture_dir </> fixture_file_name)
+  _ <- expect (default_fixture_path == default_fixture_dir </> fixture_file_name)
     ("default_fixture_path is " ++ show default_fixture_path ++ " and the directory joined to the"
       ++ " file name is " ++ show (default_fixture_dir </> fixture_file_name)
       ++ ". The joined path is stated once so no caller joins it a second time; plan 28-04 asserts"
       ++ " it against the consuming test on origin/develop rather than against a copy of the"
       ++ " string.")
+  _ <- expect (plank_root_from Nothing == Nothing && plank_root_from (Just "") == Nothing)
+         (plank_root_env_var ++ " absent or empty must resolve to Nothing; got "
+           ++ show (plank_root_from Nothing, plank_root_from (Just "")))
+  _ <- expect (plank_root_from (Just "/srv/plank") == Just "/srv/plank")
+         (plank_root_env_var ++ " set must resolve verbatim")
+  _ <- expect (fixture_dir_with_root Nothing Nothing == default_fixture_dir)
+         "no root, no override: the consumer-relative default, unchanged"
+  _ <- expect (fixture_dir_with_root (Just "/srv/plank") Nothing == "/srv/plank" </> default_fixture_dir)
+         "root set, no override: the default joined under PLANK_ROOT"
+  _ <- expect (fixture_dir_with_root (Just "/srv/plank") (Just "/tmp/x") == "/tmp/x")
+         "FIXTURE_DIR wins over PLANK_ROOT"
+  expect (fixture_dir_with_root (Just "/srv/plank") (Just "") == "/srv/plank" </> default_fixture_dir)
+         "empty FIXTURE_DIR is absent, so the root default applies"
 
 -- ---------------------------------------------------------------------------------------------
 -- THE THIRD SHAPE: AN OVERRIDE WHOSE VALUE IS NOT A PATH
@@ -4658,7 +4675,40 @@ unprobed_overrides =
   -- OUT for the reason the probed list's are.
   , UnprobedOverride "GAMS_BIN" gams_bin reason_bin_has_no_offline_consumer
   , UnprobedOverride "GAMS_MODEL" gams_model reason_model_has_no_offline_consumer
+  -- Task 3. Unlike the three above, this gap is not a reachability problem: it is that
+  -- 'plank_root_from' has no rejection branch at all, so there is no bogus value whose failure
+  -- probe_override's third assertion could observe. See the reason below.
+  , UnprobedOverride "PLANK_ROOT" (fromMaybe "" <$> plank_root)
+      reason_plank_root_resolves_verbatim_and_refuses_nothing
   ]
+
+-- | WHY @PLANK_ROOT@ IS NOT IN 'advertised_overrides' -- AND WHY IT IS NOT MISSING A THIRD
+-- ASSERTION FOR THE SAME REASON THE THREE ABOVE ARE.
+--
+-- The DSN, the binary and the model are gaps of REACHABILITY: their consumers exist, and
+-- probe_override's third assertion could in principle observe them fail, except that the module
+-- doing the consuming is unreachable from @cabal test@ by construction. @PLANK_ROOT@ is a gap of a
+-- different shape. Its resolver, 'plank_root_from', is TOTAL over 'Maybe String' with no rejection
+-- branch -- absent or empty both mean "no monorepo here", and anything else is accepted verbatim
+-- -- so there is no bogus value to point it at and no failure for a consumer to name. The two
+-- measurable halves that DO apply to every entry in this list -- verbatim resolution, and
+-- departure from the unset default -- are exactly what 'measure_resolution' already asserts below,
+-- and its actual consumer, 'fixture_dir_with_root', is driven directly and exhaustively by
+-- 'fixture_dir_rule_assertions' with both @Nothing@ and @Just@ on both of its arguments, which is
+-- a stronger guarantee than a single bogus-path probe would have given it anyway.
+reason_plank_root_resolves_verbatim_and_refuses_nothing :: String
+reason_plank_root_resolves_verbatim_and_refuses_nothing =
+  "PLANK_ROOT: resolved verbatim and refuses nothing; its only effect is fixture_dir_with_root,\
+  \ which fixture_dir_rule_assertions drives directly with both Nothing and Just. That is the\
+  \ difference from the DSN, the binary and the model above: those three name a GAP because\
+  \ probe_override's third assertion -- the consumer failing loudly and NAMING the resolved value\
+  \ -- has no honest subject inside cabal test. This one has no THIRD assertion to lack in the\
+  \ first place: plank_root_from is a total function over Maybe String with no rejection branch,\
+  \ so there is nothing for a bogus value to fail against, and the two measurable halves --\
+  \ verbatim resolution and departure from the unset default -- are exactly what measure_resolution\
+  \ already checks below. Its consumer, fixture_dir_with_root, is driven directly and exhaustively\
+  \ by fixture_dir_rule_assertions with both Nothing and Just on both arguments, which is a\
+  \ stronger guarantee than probe_override's single bogus-path probe would have given it."
 
 -- | THE TWO CONFIG MODULES' FIVE VARIABLES, AND WHERE THE LIST ITSELF IS ASSERTED.
 --
@@ -4690,6 +4740,12 @@ config_env_vars =
   -- has to fail loudly is 'Loop.Publish.publish_fixture', which refuses a directory that does not
   -- exist and NAMES it -- LOOP-04 -- rather than creating one.
   , ("fixture_dir_env_var", fixture_dir_env_var)
+  -- Task 3. The monorepo checkout this bridge publishes into. Its value IS a path, but its
+  -- resolver 'plank_root_from' refuses nothing -- there is no bogus value probe_override's third
+  -- assertion could point it at and see a consumer fail NAMING it -- so it is neither an
+  -- 'advertised_overrides' entry nor a 'value_overrides' one: it is named as a gap in
+  -- 'unprobed_overrides', below.
+  , ("plank_root_env_var", plank_root_env_var)
   ]
 
 -- | The two modules in which an environment variable of this subsystem is NAMED. Both config

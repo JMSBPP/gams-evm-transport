@@ -31,7 +31,8 @@ A malformed value is **refused with a named exit**, never silently defaulted.
 |---|---|---|
 | `ETH_RPC_URL` | `http://127.0.0.1:8545` | The one endpoint authority. `rig/endpoint.sh` states the same default for the shell scripts; the suite asserts the two byte-equal. |
 | `PGSTORE_DSN` | *(empty — the loop will not start)* | **Required.** Store + ledger. The loop runs migrations `001`–`004` itself at startup. |
-| `FIXTURE_DIR` | `test/models/mev_tax_model_one/fixtures` (repo-relative; issue #25's contract) | Publication directory. The loop **never creates it** (LOOP-04). |
+| `PLANK_ROOT` | *(unset)* | Optional. A checkout of `JMSBPP/cfmm-replicationPlank` with an `origin` remote. When set, the default publication directory is resolved under it and the monorepo-contract checks in `cabal test` run instead of being skipped by name. |
+| `FIXTURE_DIR` | `$PLANK_ROOT/test/models/mev_tax_model_one/fixtures` when `PLANK_ROOT` is set, else the same path relative to cwd (issue #25's contract) | Publication directory. The loop **never creates it** (LOOP-04). |
 | `LOOP_POLL_MS` | `1000` | Positive integer only. |
 | `GAMS_BIN` | `gams` (on `PATH`) | Prover binary. |
 | `GAMS_MODEL` | see `Gams.Config` | The `.gms` model path. |
