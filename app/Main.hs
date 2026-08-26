@@ -49,6 +49,8 @@ import Data.List (dropWhileEnd)
 import Data.Maybe (listToMaybe)
 import qualified Data.Text as T
 import Data.Word (Word32)
+import System.Environment (getArgs, getProgName)
+import System.Exit (exitSuccess)
 import System.Process (readProcess)
 
 import Sample
@@ -132,6 +134,18 @@ import VolOrder.Types (VolOrder (..))
 
 main :: IO ()
 main = do
+  -- @--help@\/@-h@ is handled BEFORE 'load_rig', mirroring @app\/LoopMain.hs@'s own
+  -- 'parse_mode': a driver that stops on a missing manifest before it has even looked at its
+  -- arguments would make @--help@ itself require a standing rig, which defeats the point of
+  -- asking what the rig needs before running it.
+  args <- getArgs
+  if any (`elem` ["--help", "-h"]) args
+    then do
+      self <- getProgName
+      mapM_ putStrLn (usage self)
+      exitSuccess
+    else pure ()
+
   -- The rig is loaded FIRST -- before the RNG, before the provider, before any RPC call.
   --
   -- Every address this driver touches and the topic0s it decodes with are read here, from
@@ -530,6 +544,34 @@ legacy_record tick (pool_manager, slot, value) =
 
 address_hex :: Address -> String
 address_hex = hex_of . toHexString
+
+-- ---------------------------------------------------------------------------------------------
+-- Usage
+-- ---------------------------------------------------------------------------------------------
+
+-- | Printed for @--help@\/@-h@ and nothing else -- the driver takes no other flag and no
+-- positional argument. Mirrors @app\/LoopMain.hs@'s own 'usage': the three environment variables
+-- named here are exactly the ones this driver's startup path reads before its first RPC call --
+-- 'Rig.Manifest.rig_manifest_path' and 'Rig.Manifest.rig_pins_path' for @RIG_MANIFEST@\/@RIG_PINS@,
+-- 'Driver.Seed.seed_env_var' for @RIG_SEED@ -- so a rename of any of the three carries this text
+-- with it only if this text is kept beside the code that reads them, which it is.
+usage :: String -> [String]
+usage self =
+  [ "usage: " ++ self
+  , ""
+  , "  Runs the demo driver once: exercises both price mechanisms and the stochastic order"
+  , "  generator against the live rig, then leaves a committed, replayable run record"
+  , "  (rig/driver-run-capture.json by default) behind."
+  , ""
+  , "  RIG_MANIFEST  path to the rig's per-deploy address manifest (default: rig/rig-manifest.json,"
+  , "                the path rig/deploy-rig.sh writes)"
+  , "  RIG_PINS      path to the rig's committed static pin file (default: rig/rig-pins.json)"
+  , "  RIG_SEED      decimal Word32 seed for the run's randomness; unset draws one from system"
+  , "                entropy and prints it before anything is sent"
+  , ""
+  , "A missing, stale or malformed RIG_MANIFEST or RIG_PINS stops the run before any RPC call;"
+  , "a malformed RIG_SEED fails loudly rather than falling back to a drawn one."
+  ]
 
 -- ---------------------------------------------------------------------------------------------
 -- Reporting and small helpers
