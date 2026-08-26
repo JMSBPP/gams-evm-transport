@@ -39,7 +39,7 @@
 # capture-cheat-swap-proof.sh carries, for the same reason.
 # ---------------------------------------------------------------------------
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+. "$(dirname "$0")/plank-root.sh"
 
 MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
 IMPORT_REF=rig/import-ref.txt

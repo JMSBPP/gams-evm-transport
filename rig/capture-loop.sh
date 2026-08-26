@@ -81,12 +81,16 @@
 # processed one.
 # ---------------------------------------------------------------------------
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+. "$(dirname "$0")/plank-root.sh"
 
 MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
 IMPORT_REF=rig/import-ref.txt
 OUT=rig/loop-conformance.json
-FIXTURE_DIR_DEFAULT=test/models/mev_tax_model_one/fixtures
+# The publication directory belongs to the mev_tax_model_one Solidity workstream -- it is
+# NOT under this repo's test/ tree (verified empty: this repo's test/ carries only Main.hs).
+# It lives beside the forge sources the loop's driven emitter needs, so it resolves under
+# PLANK_ROOT exactly as every other forge-side site in this file's siblings does.
+FIXTURE_DIR_DEFAULT="$PLANK_ROOT/test/models/mev_tax_model_one/fixtures"
 FIXTURES="${FIXTURE_DIR:-$FIXTURE_DIR_DEFAULT}"
 FIXTURE_FILE=volume_path.json
 # The contract name Loop's own executable looks for. Stated here so the refusal

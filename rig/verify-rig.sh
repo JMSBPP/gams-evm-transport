@@ -17,7 +17,7 @@
 # check, which points it at a copy carrying a dead address and must exit nonzero).
 # ---------------------------------------------------------------------------
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+. "$(dirname "$0")/plank-root.sh"
 
 # CHAIN-06, AND THIS FILE IS THE ONE THE REQUIREMENT'S OWN LIST MISSED.
 #

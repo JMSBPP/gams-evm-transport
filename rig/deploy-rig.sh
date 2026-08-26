@@ -21,7 +21,8 @@
 # Use `deploy-rig.sh --stop` to tear it down.
 # ---------------------------------------------------------------------------
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+TRANSPORT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$TRANSPORT_ROOT"
 
 # --- CHAIN-06 / CHAIN-07: THE ENDPOINT, RESOLVED ONCE, FOR THE PRODUCER TOO ------------------
 #
@@ -51,7 +52,7 @@ cd "$(git rev-parse --show-toplevel)"
 # The resolver is SOURCED and never re-spelled. rig/endpoint.sh is the ONE place the shell
 # side states the default, and lib/Chain/Endpoint.hs is the ONE place the Haskell side
 # does; the suite asserts the two literals are byte-equal.
-. rig/endpoint.sh    # sets RPC_URL, RPC_HOST, RPC_PORT
+. "$TRANSPORT_ROOT/rig/endpoint.sh"    # sets RPC_URL, RPC_HOST, RPC_PORT
 LOG_DIR=/tmp/rig-logs
 
 # RIG_MANIFEST IS HONOURED HERE, exactly as every reader honours it: verify-rig.sh:23,
@@ -213,6 +214,15 @@ if [ "${1:-}" = "--stop" ]; then
   exit 0
 fi
 
+# PLANK_ROOT IS RESOLVED HERE, AFTER --stop, NEVER BEFORE IT.
+# --stop only needs rig/endpoint.sh + cast (both already available above), and it is the
+# teardown develop-gate.yml calls from an `if: always()` step -- see "WHY THIS IS SOURCED
+# ABOVE THE --stop BRANCH" for rig/endpoint.sh's own version of this same rule. A PLANK_ROOT
+# gate standing between a teardown and the process it exists to kill would be exactly the
+# defect Step 0b narrates below, so everything past this point -- the DEPLOY path only --
+# is what actually needs the monorepo.
+. "$(dirname "$0")/plank-root.sh"
+
 # --- Step 0b: the gates that only the DEPLOY path needs ---------------------
 #
 # THESE TWO BLOCKS USED TO LIVE ABOVE `--stop`, AND THAT LEAKED ANVIL.
@@ -364,9 +374,9 @@ echo "  chainId asserted BEFORE any broadcast: $LIVE_CHAIN_ID at $RPC_URL"
 # A script that fails leaves the PREVIOUS run's run-latest.json on disk, and the
 # generator below would then emit a stale address. Deleting first turns that
 # silent-wrong-address failure into an honest "file not found".
-rm -rf broadcast/DeployVolOrderManagerMod.s.sol broadcast/DeployRealizedVolatilityMod.s.sol \
+( cd "$PLANK_ROOT" && rm -rf broadcast/DeployVolOrderManagerMod.s.sol broadcast/DeployRealizedVolatilityMod.s.sol \
        broadcast/DeployDynamicFeeMod.s.sol broadcast/DeployDynamicFeeHook.s.sol \
-       broadcast/PriceSetterHook.s.sol broadcast/InitSwappableRig.s.sol
+       broadcast/PriceSetterHook.s.sol broadcast/InitSwappableRig.s.sol )
 
 # --- Step 4: derive the accounts (never hardcoded) -------------------------
 # DEPLOYER = anvil index 0 = PlankDeployBase.deployerKey()'s default.
@@ -381,7 +391,12 @@ SENDER=$(cast wallet address --mnemonic "$ANVIL_MNEMONIC" --mnemonic-index 1 | t
 run_deploy() {
   local log="$1"; shift
   echo "--> $*"
-  if ! "$@" 2>&1 | tee "$log"; then
+  # cd INSIDE A SUBSHELL, NEVER PERSISTENTLY. Every forge script below is a monorepo-relative
+  # site (foundry-scripts/..., its own foundry.toml, remappings) -- PLANK_ROOT is where they
+  # resolve. $log is absolute ($LOG_DIR=/tmp/rig-logs), so tee is unaffected, and the parent
+  # shell's cwd stays $TRANSPORT_ROOT once this subshell exits: Step 9 still writes the
+  # manifest under rig/ with no path change needed there.
+  if ! ( cd "$PLANK_ROOT" && "$@" ) 2>&1 | tee "$log"; then
     echo "FATAL: deploy script failed: $*" >&2
     echo "       full output: $log" >&2
     exit 1
@@ -522,7 +537,7 @@ run_deploy "$LOG_DIR/04-hook.log" \
 # duplicated) because InitSwappableRig.s.sol reads POOL_MANAGER/HOOK/TOKEN0/TOKEN1 from
 # the environment and every one of them is produced by the 4th script above. Step 7 keeps
 # the remaining extractions and Step 8 keeps ALL of the cross-checks.
-B_HOOK=broadcast/DeployDynamicFeeHook.s.sol/31337/run-latest.json
+B_HOOK="$PLANK_ROOT/broadcast/DeployDynamicFeeHook.s.sol/31337/run-latest.json"
 [ -f "$B_HOOK" ] || { echo "FATAL: broadcast record missing: $B_HOOK" >&2; exit 1; }
 
 # DeployDynamicFeeHook creates the hook by a raw `.call` to the CREATE2 proxy,
@@ -622,12 +637,12 @@ fi
 
 # --- Step 7: extract addresses from the broadcast JSONs (PRIMARY source) ---
 # B_HOOK is defined in Step 5a (its addresses are ENV inputs to the 6th script).
-B_VOM=broadcast/DeployVolOrderManagerMod.s.sol/31337/run-latest.json
-B_RVM=broadcast/DeployRealizedVolatilityMod.s.sol/31337/run-latest.json
-B_DFM=broadcast/DeployDynamicFeeMod.s.sol/31337/run-latest.json
-B_PSH=broadcast/PriceSetterHook.s.sol/31337/run-latest.json
-B_SWAP=broadcast/InitSwappableRig.s.sol/31337/run-latest.json
-B_SW=broadcast/DeployShockWriter.s.sol/31337/run-latest.json
+B_VOM="$PLANK_ROOT/broadcast/DeployVolOrderManagerMod.s.sol/31337/run-latest.json"
+B_RVM="$PLANK_ROOT/broadcast/DeployRealizedVolatilityMod.s.sol/31337/run-latest.json"
+B_DFM="$PLANK_ROOT/broadcast/DeployDynamicFeeMod.s.sol/31337/run-latest.json"
+B_PSH="$PLANK_ROOT/broadcast/PriceSetterHook.s.sol/31337/run-latest.json"
+B_SWAP="$PLANK_ROOT/broadcast/InitSwappableRig.s.sol/31337/run-latest.json"
+B_SW="$PLANK_ROOT/broadcast/DeployShockWriter.s.sol/31337/run-latest.json"
 
 for f in "$B_VOM" "$B_RVM" "$B_DFM" "$B_HOOK" "$B_PSH" "$B_SWAP" "$B_SW"; do
   [ -f "$f" ] || { echo "FATAL: broadcast record missing: $f" >&2; exit 1; }

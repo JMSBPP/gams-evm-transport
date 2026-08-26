@@ -232,3 +232,72 @@ real `PLANK_ROOT`, GREEN (skipped) bare. Re-verifying and re-pointing `consumer_
 4's scope (the check's own assertion, not its gating, is what would need to change).
 
 Re-pointed in fix round 1 (the commit titled `test: re-point the consumer-constant contract check at MevTaxVolumePathV4.t.sol/FIXTURE`); passes against origin/develop d2b1c51.
+
+## monorepo-contract drift (rig scripts) — 1
+
+Measured 2026-08-26 running Task 6 Step 3's verification loop against the same dedicated
+`origin/develop` clone, `PLANK_ROOT="$S/plank"` at `d2b1c518f56dcc82c7cc72d29ab870a44b5be2a8`
+(`origin/develop`'s current tip; matches the `d2b1c51` short form used above). `check-upstream.sh`
+passed (`OPEN: ... 0x98d950ec present`) and re-pinned `rig/import-ref.txt` from `2039f278...` to
+`d2b1c518...`. `verify-import.sh` then FAILED:
+
+```
+SC-1 FAIL sha256 notes/DATA_CONTRACT.md: pinned=b9f8a1198f39d2bcca28025941ca290feb67e6becccec83eed897a6e1cd259ea actual=18f00b14f034d17bf16019df39a75051bd3d3e400ed7d98f3d8b0092b4e687c4
+```
+
+This is check (b) (the sha256 recompute against
+`.planning/phases/20-deploy-rig-source-of-truth-import/IMPORT-PIN.md`), not check (a) (the git
+content diff): (a) passed silently because `$S/plank`'s working tree IS `origin/develop`'s tip, so
+`git diff d2b1c518... -- <paths>` compares the tree to itself. `IMPORT-PIN.md` itself is present
+(not absent) at 5494 bytes, but its committed sha256 for `notes/DATA_CONTRACT.md` was pinned back
+when `import-ref.txt` held the older `2039f278...` ref — the file's content on `origin/develop` has
+legitimately moved since that pin was taken, and `IMPORT-PIN.md` was never re-taken against the
+newer tip. This is the same class of finding as the `default_fixture_path` entry above: a real,
+measured monorepo-contract drift between the pinned evidence and the live `develop` branch, not a
+defect in `verify-import.sh`'s wiring. `verify-import.sh` is correctly PLANK_ROOT-gated (Step 3's
+`env -u PLANK_ROOT bash rig/verify-import.sh` exits 64; `PLANK_ROOT=/nonexistent` exits 64) and
+correctly reads `IMPORT-PIN.md`, the import paths and the working-tree diff all from `$PLANK_ROOT`
+— it is left exactly as written, honest and un-stubbed, per the brief ("if `verify-import.sh` fails
+because … an imported path is absent on develop, that is monorepo drift: record it … and leave the
+script honest — do not stub the check"). Re-taking `IMPORT-PIN.md` against the current
+`origin/develop` tip (`bash rig/generate-pins.sh`'s sibling for the pin file, or whatever regenerates
+`IMPORT-PIN.md` on the plank side) is follow-up work outside Task 6's scope — Task 6 wires the
+`PLANK_ROOT` resolution the check runs under; it does not own `IMPORT-PIN.md`'s freshness, which is
+plank's file (`rig/README.md`'s own rule: "`src/`, `foundry-scripts/`, `test/`, `Makefile`,
+`foundry.toml` belong to other tracks: this rig RUNS them, it never edits them" — `IMPORT-PIN.md`
+is the same class of artifact, committed on the plank side).
+
+**Downstream of the same re-pin — the bare `cabal test` cascade.** Re-pinning `rig/import-ref.txt`
+is exactly what `check-upstream.sh` is FOR, and the brief calls for committing it as the re-pin it
+is. But `rig/import-ref.txt` is read by two OTHER committed artifacts' freshness checks
+(`sc4_generated_from_is_the_imported_ref` against `rig/rig-pins.json`, and
+`the_pinned_read_held_while_the_unpinned_read_moved` against `rig/chain-read-conformance.json`), and
+re-pinning the ref without re-taking those two artifacts desyncs them — MEASURED: the bare suite
+dropped from 232/232 (verified at clean HEAD, before this re-pin, via `git stash`) to 230/232 with
+both named FAILs, each printing its own remediation:
+
+```
+FAIL sc4_generated_from_is_the_imported_ref: rig-pins.json (RIG_PINS) records generatedFrom
+"2039f2783598866a337115df4a265a75e8842e82" but rig/import-ref.txt names "d2b1c518f56d...".
+... Regenerate: bash rig/generate-pins.sh
+FAIL the_pinned_read_held_while_the_unpinned_read_moved: the capture was produced from ref
+"2039f2783598866a337115df4a265a75e8842e82" and the tree's rig/import-ref.txt says "d2b1c518f56d...".
+Re-take it: bash rig/capture-chain-read.sh
+```
+
+The first is regenerable here: `generate-pins.sh` needs only `PLANK_ROOT` and `cast sig`/`cast
+keccak` (pure hash computation, no live chain), and re-running it against `$PLANK_ROOT` at
+`d2b1c518...` produced a `rig/rig-pins.json` DIFFERING FROM THE COMMITTED ONE IN EXACTLY ONE FIELD
+— `generatedFrom` — confirmed by `diff <(jq -S 'del(.generatedFrom)' ...)` on both sides before
+adopting it. No selector, topic0 or retired value moved between the two refs, so this regeneration
+carried zero blast radius beyond the ref itself, and it is committed here.
+
+The second is NOT regenerable within Task 6: `capture-chain-read.sh` needs a STANDING rig
+(`cast block-number` must answer, and the capture MUTATES chain state), which means running
+`deploy-rig.sh` end-to-end — explicitly out of scope for this task ("deploy-rig.sh end-to-end is
+not run here — it is exercised by rig-e2e (Task 8)"). `the_pinned_read_held_while_the_unpinned_read_moved`
+is therefore left FAILING, honestly, against the freshly re-pinned ref: **231/232** is the correct,
+measured bare-suite result after Task 6's changes, not 232/232. `rig/chain-read-conformance.json`
+needs a live re-take (`bash rig/deploy-rig.sh && bash rig/capture-chain-read.sh`) against a rig
+built from `$PLANK_ROOT` at `d2b1c518...`, which is exactly what Task 8's `rig-e2e` is positioned to
+do — this finding is left for that task rather than worked around here.

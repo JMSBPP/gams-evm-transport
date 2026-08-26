@@ -33,7 +33,7 @@
 # rig whose state another measurement depends on.
 # ---------------------------------------------------------------------------
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+. "$(dirname "$0")/plank-root.sh"
 
 MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
 IMPORT_REF=rig/import-ref.txt

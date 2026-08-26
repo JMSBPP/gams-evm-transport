@@ -6,7 +6,7 @@
 #          executable. This is cross-track coordination (issue #13 / peer ul2inqpl), never a
 #          local problem to work around.
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+. "$(dirname "$0")/plank-root.sh"
 
 command -v jq >/dev/null || { echo "FATAL: jq not on PATH" >&2; exit 1; }
 
@@ -66,8 +66,10 @@ if [ "$V2_SELECTOR" = "$V1_SELECTOR" ]; then
   exit 1
 fi
 
-git fetch origin --quiet
-DEV=$(git rev-parse origin/develop)
+# PR #15 (feat/plank -> develop) merges INTO the monorepo, so "origin/develop" is
+# PLANK_ROOT's remote branch, never this repo's -- resolved with git -C throughout.
+git -C "$PLANK_ROOT" fetch origin --quiet
+DEV=$(git -C "$PLANK_ROOT" rev-parse origin/develop)
 
 REQUIRED_PATHS=(
   foundry-scripts/deploy/PlankDeployBase.s.sol
@@ -84,12 +86,12 @@ REQUIRED_PATHS=(
 )
 missing=0
 for p in "${REQUIRED_PATHS[@]}"; do
-  git cat-file -e "$DEV:$p" 2>/dev/null || { echo "ABSENT on $DEV: $p"; missing=1; }
+  git -C "$PLANK_ROOT" cat-file -e "$DEV:$p" 2>/dev/null || { echo "ABSENT on $DEV: $p"; missing=1; }
 done
 
 # The V1-vs-V2 discriminator. A path-existence check alone CANNOT tell a merged V2 interface
 # from the stale v1 file (which declares the RETIRED $V1_SELECTOR and has no event block).
-if ! git show "$DEV:src/interfaces/pos_spec/VolOrderManagerInterface.plk" 2>/dev/null \
+if ! git -C "$PLANK_ROOT" show "$DEV:src/interfaces/pos_spec/VolOrderManagerInterface.plk" 2>/dev/null \
      | grep -q "$V2_SELECTOR"; then
   echo "STALE/ABSENT: VolOrderManagerInterface.plk on $DEV lacks the V2 create_order selector"
   echo "  expected (pinned) : $V2_SELECTOR"

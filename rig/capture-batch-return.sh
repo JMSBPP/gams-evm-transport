@@ -43,10 +43,12 @@
 # runs against the same rig is byte-identical.
 # ---------------------------------------------------------------------------
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
+. "$(dirname "$0")/plank-root.sh"
 
 MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
-GOLDEN="test/pos_spec/fixtures/vol_order_return_golden.json"
+# Another track's Solidity-testing fixture -- NOT under this repo's test/ tree (verified
+# empty: this repo's test/ carries only Main.hs). READ ONLY here, and read from PLANK_ROOT.
+GOLDEN="$PLANK_ROOT/test/pos_spec/fixtures/vol_order_return_golden.json"
 OUT=rig/batch-return-capture.json
 # CHAIN-06. This line used to be the authority written out as a literal, so ETH_RPC_URL was
 # accepted by the shell and ignored here -- the capture went to 8545 no matter what the operator

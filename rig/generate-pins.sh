@@ -29,8 +29,14 @@
 #
 set -euo pipefail
 
-cd "$(dirname "$0")/../.."
-ROOT="$PWD"
+. "$(dirname "$0")/plank-root.sh"
+# Every input below (IFACES, DATA_CONTRACT, STALE_TOPIC_SRC, QUOTED_SIG_SPECS) is a
+# monorepo-relative path, exactly as it was when this script's old double-`..` climbed to
+# the shared repo root. ROOT is PLANK_ROOT now, and cwd follows it so those relative reads
+# keep working unchanged; only OUT and REF_FILE below are made absolute, so they still land
+# under $TRANSPORT_ROOT/rig regardless of this cd.
+ROOT="$PLANK_ROOT"
+cd "$ROOT"
 
 # RIG_PINS IS HONOURED HERE, on the file that WRITES, exactly as 90765c1 made deploy-rig.sh
 # honour RIG_MANIFEST. README.md:274 states the rule with no exception for the writer and
@@ -47,8 +53,8 @@ ROOT="$PWD"
 # exported RIG_PINS for a falsification run having to remember to unexport it before
 # regenerating, and forgetting is the destructive direction. Note what it does NOT redirect:
 # the INPUTS are still the imported interface files and notes/DATA_CONTRACT.md, unconditionally.
-OUT="${RIG_PINS:-rig/rig-pins.json}"
-REF_FILE="rig/import-ref.txt"
+OUT="${RIG_PINS:-$TRANSPORT_ROOT/rig/rig-pins.json}"
+REF_FILE="$TRANSPORT_ROOT/rig/import-ref.txt"
 DATA_CONTRACT="notes/DATA_CONTRACT.md"
 
 # FLOORS. Without them a parse that matched NOTHING was a successful run: every awk
@@ -139,7 +145,7 @@ QUOTED_SIG_FILES=()
 for spec in "${QUOTED_SIG_SPECS[@]}"; do QUOTED_SIG_FILES+=("${spec%%|*}"); done
 
 for f in "${IFACES[@]}" "${QUOTED_SIG_FILES[@]}" "$REF_FILE" "$STALE_TOPIC_SRC" "$DATA_CONTRACT"; do
-  [ -f "$f" ] || { echo "FATAL: missing input $ROOT/$f" >&2; exit 1; }
+  [ -f "$f" ] || { echo "FATAL: missing input $(realpath -m "$f")" >&2; exit 1; }
 done
 command -v cast >/dev/null || { echo "FATAL: cast (foundry) not on PATH" >&2; exit 1; }
 command -v jq   >/dev/null || { echo "FATAL: jq not on PATH" >&2; exit 1; }
@@ -170,7 +176,7 @@ REF="$(tr -d ' \t\n\r' < "$REF_FILE")"
 # capture wrote generatedFrom "" and its self-check 4 passed on "" == "", exit 0.
 case "$REF" in
   [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
-  *) echo "FATAL: $ROOT/$REF_FILE does not hold a 40-digit lowercase sha (got '$REF')." >&2
+  *) echo "FATAL: $(realpath -m "$REF_FILE") does not hold a 40-digit lowercase sha (got '$REF')." >&2
      echo "       generatedFrom would carry it into the pin file. Re-record the ref:" >&2
      echo "         bash rig/check-upstream.sh" >&2
      exit 1 ;;

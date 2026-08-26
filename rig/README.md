@@ -7,26 +7,45 @@ Nothing in this directory requires you to know anything beyond this file.
 
 ## Clean-machine sequence
 
+This repository (`gams-evm-transport`, the TRANSPORT_ROOT below) no longer carries the forge
+sources or the anvil rig's dependencies itself: every script under `rig/` sources
+`rig/plank-root.sh`, which resolves `TRANSPORT_ROOT` (this repo) and requires `PLANK_ROOT` — a
+checkout of `JMSBPP/cfmm-replicationPlank` — to be set and valid (a `foundry.toml` and an `origin`
+remote), or it FATALs with exit 64. Its Haskell twin is `Loop.Config.plank_root`: same variable,
+same "unset or empty means absent" rule.
+
 Run these in order, from the repository root. Every step must exit 0 before the next.
 
 ```bash
-npm ci --ignore-scripts          # node_modules is a HARD forge dependency
+git clone https://github.com/JMSBPP/cfmm-replicationPlank.git /path/to/plank
+export PLANK_ROOT=/path/to/plank
 
-# the recursion guard is REQUIRED on a clean machine -- see "The submodule guard" below
-git -c submodule.lib/panoptic-helper.update=none submodule update --init --recursive
+( cd "$PLANK_ROOT" && \
+    npm ci --ignore-scripts && \
+    # the recursion guard is REQUIRED on a clean machine -- see "The submodule guard" below
+    git -c submodule.lib/panoptic-helper.update=none submodule update --init --recursive && \
+    forge build )                # must exit 0 before anything else
 
-forge build                      # must exit 0 before anything else
+rig/check-upstream.sh && rig/verify-import.sh && rig/deploy-rig.sh && rig/verify-rig.sh
+#   check-upstream.sh   the artifacts are imported from PLANK_ROOT's origin/develop
+#   verify-import.sh    SC-1: imported files match the recorded ref
+#   deploy-rig.sh        SC-2/SC-5: owns anvil; writes rig/rig-manifest.json
+#   verify-rig.sh        SC-2: every contract answers a live read
 
-rig/check-upstream.sh   # the artifacts are imported from origin/develop
-rig/verify-import.sh    # SC-1: imported files match the recorded ref
-rig/deploy-rig.sh       # SC-2/SC-5: owns anvil; writes rig/rig-manifest.json
-rig/verify-rig.sh       # SC-2: every contract answers a live read
-
-cabal build --enable-tests -j all && cabal test  # SC-3/SC-4: manifest loads; pins recompute
+# SC-3/SC-4: manifest loads; pins recompute. RIG_TESTS=1 turns on the rig/foundry-gated
+# checks above the bare (PLANK_ROOT-only) partition -- both need the standing rig this
+# sequence just deployed.
+cabal build --enable-tests -j all && RIG_TESTS=1 cabal test
 
 # the DRIVER. RIG_SEED is optional: unset, a seed is DRAWN and printed.
 RIG_SEED=123456789 cabal run gams-evm-transport
 ```
+
+**CI's `rig-e2e` job** runs this same sequence on a self-hosted runner whose `PLANK_ROOT` is a
+DEDICATED checkout, never a developer's own worktree: `deploy-rig.sh` writes `broadcast/` and
+`npm ci` writes `node_modules/` INSIDE `$PLANK_ROOT`, both of which mutate that checkout's working
+tree, so a `PLANK_ROOT` shared with anything else risks exactly the kind of cross-job interference
+`develop-gate.yml`'s own `--stop` ordering already guards against for anvil's port.
 
 The last step is the run itself, not a smoke test. It drives both price mechanisms and all three
 order shapes against the standing rig and writes `rig/driver-run-capture.json` —

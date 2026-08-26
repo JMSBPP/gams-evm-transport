@@ -6,10 +6,10 @@
 # still reachable; (b) survives regardless, because it recomputes from the working tree
 # against digests committed in the pin file. That is why BOTH are run.
 set -euo pipefail
-cd "$(git rev-parse --show-toplevel)"
-REF_FILE=rig/import-ref.txt
-PIN=.planning/phases/20-deploy-rig-source-of-truth-import/IMPORT-PIN.md
-PATHS=rig/import-paths.txt
+. "$(dirname "$0")/plank-root.sh"
+REF_FILE="$TRANSPORT_ROOT/rig/import-ref.txt"
+PIN="$PLANK_ROOT/.planning/phases/20-deploy-rig-source-of-truth-import/IMPORT-PIN.md"
+PATHS="$TRANSPORT_ROOT/rig/import-paths.txt"
 
 # THE SHAPE OF THE ANCHOR, asserted before it is used as a git revision.
 #
@@ -98,8 +98,9 @@ if ! diff_out=$(diff <(printf '%s\n' "$pinned") <(printf '%s\n' "$listed")); the
   exit 1
 fi
 
-# (a) content diff against the recorded ref
-if ! git diff --exit-code "$REF" -- $(tr '\n' ' ' < "$PATHS"); then
+# (a) content diff against the recorded ref, IN THE MONOREPO: $REF is a plank sha and every
+# imported path below is monorepo-relative, so the diff must run against $PLANK_ROOT's tree.
+if ! ( cd "$PLANK_ROOT" && git diff --exit-code "$REF" -- $(tr '\n' ' ' < "$PATHS") ); then
   echo "SC-1 FAIL: working tree differs from $REF on an imported path"; exit 1
 fi
 
@@ -112,7 +113,7 @@ while read -r p; do
   if [ -z "$want" ]; then
     echo "SC-1 FAIL: no pin row in $PIN for $p"; fail=1; continue
   fi
-  got=$(sha256sum "$p" | cut -d' ' -f1)
+  got=$(sha256sum "$PLANK_ROOT/$p" | cut -d' ' -f1)
   if [ "$want" != "$got" ]; then
     echo "SC-1 FAIL sha256 $p: pinned=$want actual=$got"; fail=1
   fi
@@ -129,7 +130,7 @@ if [ "$checked" -ne "$n_pinned" ]; then
 fi
 
 # (c) the superseded file must stay gone
-test ! -e src/lib/TickUtils.plk || { echo "SC-1 FAIL: src/lib/TickUtils.plk reappeared"; exit 1; }
+test ! -e "$PLANK_ROOT/src/lib/TickUtils.plk" || { echo "SC-1 FAIL: src/lib/TickUtils.plk reappeared"; exit 1; }
 
 echo "SC-1 OK: $n imported paths (the exact set IMPORT-PIN.md pins) content-identical to $REF"
 echo "         and sha256-matched to IMPORT-PIN.md"
