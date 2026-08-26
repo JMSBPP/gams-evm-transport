@@ -31,8 +31,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: true          # cfmm-numopt only; its lean4-spec is not recursed
-          persist-credentials: false
+          submodules: false         # initialised explicitly below: checkout's submodule auth setup
+          persist-credentials: false  # copies ~/.gitconfig into a temp HOME and breaks when that file is a
+                                      # relative symlink (stow layout on this host) — measured 2026-08-26
+      - name: init the cfmm-numopt submodule (public; first level only — its lean4-spec is not recursed)
+        run: git submodule update --init cfmm-numopt
       - run: echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
       - run: |
           [ "$(ghc --numeric-version 2>/dev/null)" = "9.10.3" ] || ghcup install ghc 9.10.3 --set
@@ -80,7 +83,8 @@ jobs:
       PG_PASS: postgres
     steps:
       - uses: actions/checkout@v4
-        with: { submodules: true, persist-credentials: false }
+        with: { submodules: false, persist-credentials: false }
+      - run: git submodule update --init cfmm-numopt
       - run: echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
       - run: |
           [ -n "${PLANK_ROOT:-}" ] || { echo "::error::PLANK_ROOT is not set in the runner's .env"; exit 1; }
