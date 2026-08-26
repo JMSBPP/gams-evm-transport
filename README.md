@@ -73,7 +73,7 @@ refused with a named exit, never silently defaulted.
 |---|---|---|
 | `ETH_RPC_URL` | `http://127.0.0.1:8545` | The one endpoint authority; the shell scripts under `rig/` state the same default, and the test suite asserts the two are byte-equal. See `LOOP.md` §2 for the resolver. |
 | `PGSTORE_DSN` | *(empty — the loop will not start)* | **Required.** Store + ledger connection. The loop runs migrations `001`–`004` itself at startup. |
-| `PLANK_ROOT` | *(unset)* | Optional. A checkout of `JMSBPP/cfmm-replicationPlank` with an `origin` remote. When set, the default publication directory resolves under it, and the monorepo-contract checks in `cabal test` run instead of being skipped by name. |
+| `PLANK_ROOT` | *(unset)* | Optional. A checkout of `JMSBPP/cfmm-vol-markets` with an `origin` remote. When set, the default publication directory resolves under it, and the monorepo-contract checks in `cabal test` run instead of being skipped by name. |
 | `FIXTURE_DIR` | derived under `PLANK_ROOT` when set, else the same path relative to the working directory | Publication directory. The loop never creates it. |
 | `LOOP_POLL_MS` | `1000` | Positive integer only. |
 | `GAMS_BIN` | `gams` (on `PATH`) | Prover binary. |
@@ -90,7 +90,7 @@ cabal build --enable-tests -j all
 cabal test
 
 # Runs the monorepo-contract checks against a real checkout instead of skipping them.
-PLANK_ROOT=<path to a cfmm-replicationPlank checkout at origin/develop> cabal test
+PLANK_ROOT=<path to a cfmm-vol-markets checkout at origin/develop> cabal test
 
 # Runs the rig/Postgres tier-2 checks. Stand the rig up first with rig/deploy-rig.sh.
 RIG_TESTS=1 cabal test
@@ -108,5 +108,5 @@ per-block output, exit codes) and `rig/README.md` for the clean-machine rig setu
 
 ## Provenance
 
-History split from `cfmm-replicationPlank` (now `cfmm-vol-markets`) `feat/rpc-api` @ `29ce4b7`
+History split from `cfmm-vol-markets` (ex `cfmm-replicationPlank`) `feat/rpc-api` @ `29ce4b7`
 with `git filter-repo`; 227 commits.

@@ -10,14 +10,14 @@ Nothing in this directory requires you to know anything beyond this file.
 This repository (`gams-evm-transport`, the TRANSPORT_ROOT below) no longer carries the forge
 sources or the anvil rig's dependencies itself: every script under `rig/` sources
 `rig/plank-root.sh`, which resolves `TRANSPORT_ROOT` (this repo) and requires `PLANK_ROOT` — a
-checkout of `JMSBPP/cfmm-replicationPlank` — to be set and valid (a `foundry.toml` and an `origin`
+checkout of `JMSBPP/cfmm-vol-markets` — to be set and valid (a `foundry.toml` and an `origin`
 remote), or it FATALs with exit 64. Its Haskell twin is `Loop.Config.plank_root`: same variable,
 same "unset or empty means absent" rule.
 
 Run these in order, from the repository root. Every step must exit 0 before the next.
 
 ```bash
-git clone https://github.com/JMSBPP/cfmm-replicationPlank.git /path/to/plank
+git clone https://github.com/JMSBPP/cfmm-vol-markets.git /path/to/plank
 export PLANK_ROOT=/path/to/plank
 
 ( cd "$PLANK_ROOT" && \

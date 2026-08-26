@@ -195,7 +195,7 @@ fixture_dir_from _                           = default_fixture_dir
 --
 -- It is OPTIONAL on purpose. Unset, the bridge and the suite still build, run and pass for
 -- everything that is this repository's own; what needs the monorepo is gated on it and says so
--- by name. Set, it must be a checkout of JMSBPP/cfmm-replicationPlank with an @origin@ remote.
+-- by name. Set, it must be a checkout of JMSBPP/cfmm-vol-markets with an @origin@ remote.
 plank_root_env_var :: String
 plank_root_env_var = "PLANK_ROOT"
 
