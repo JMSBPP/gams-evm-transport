@@ -57,7 +57,7 @@ jobs:
       - name: prover conformance subset against the pinned submodule
         run: |
           D=$(mktemp -d); cp cfmm-numopt/model/mev_tax_model_one/volume_path.gms "$D/"
-          ( cd "$D" && gams volume_path.gms action=ce lo=0 curdir="$D" >/dev/null 2>&1 )
+          ( cd "$D" && gams volume_path.gms action=ce lo=0 curdir="$D" >"$RUNNER_TEMP/gams.log" 2>&1 ) || { echo "::error::gams failed"; cat "$RUNNER_TEMP/gams.log"; exit 1; }
           got=$(sha256sum "$D/volume_path.json" | cut -d' ' -f1)
           want=$(jq -r '.golden.sha256' rig/gams-conformance.json)
           msha=$(sha256sum cfmm-numopt/model/mev_tax_model_one/volume_path.gms | cut -d' ' -f1)
@@ -74,7 +74,10 @@ jobs:
     timeout-minutes: 90       # flock may wait up to 30 min; develop-gate budgets 60 for the rig alone
     env:
       GIT_TERMINAL_PROMPT: "0"
-      PGSTORE_DSN: "postgresql://postgres:postgres@127.0.0.1:55433/postgres"
+      # A throwaway loopback password for the ephemeral, job-local postgres container below --
+      # never a credential literal on its own (see test/Main.hs's repo_roots haddock). PGSTORE_DSN
+      # is assembled from it, at run time, inside the rig step, rather than written whole here.
+      PG_PASS: postgres
     steps:
       - uses: actions/checkout@v4
         with: { submodules: true, persist-credentials: false }
@@ -84,8 +87,13 @@ jobs:
           echo "PLANK_ROOT=$PLANK_ROOT"
       - name: prepare the dedicated monorepo checkout (the same steps develop-gate runs)
         run: |
+          # rig-e2e VALIDATES THE COMMITTED ARTIFACTS AT THEIR RECORDED REF; it never re-pins.
+          # Moving rig/import-ref.txt is a human cycle -- see rig/README.md's "check-upstream.sh
+          # RE-PINS" paragraph -- so this checks out the pinned sha rather than origin/develop's
+          # moving tip.
+          REF="$(cat rig/import-ref.txt)"
           cd "$PLANK_ROOT"
-          git fetch origin && git checkout -q --detach origin/develop
+          git fetch origin && git checkout -q --detach "$REF"
           git submodule update --init lib/panoptic-v2-core
           git -C lib/panoptic-v2-core config submodule.lib/panoptic-helper.update none
           git submodule update --init --recursive
@@ -97,6 +105,13 @@ jobs:
           docker run -d --name gams-evm-transport-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55433:5432 postgres:18-alpine
           for i in $(seq 1 30); do docker exec gams-evm-transport-pg pg_isready -U postgres && break; sleep 1; done
           docker exec gams-evm-transport-pg pg_isready -U postgres || { echo "::error::postgres never became ready"; exit 1; }
+      # rig-e2e validates the COMMITTED artifacts at rig/import-ref.txt's pinned ref; it does not
+      # re-pin. check-upstream.sh is deliberately NOT run here -- it would move import-ref.txt
+      # without moving rig-pins.json / chain-read-conformance.json alongside it, which is exactly
+      # the drift the bare suite's freshness checks exist to catch. Re-pinning is the human cycle
+      # documented in rig/README.md ("check-upstream.sh RE-PINS ... and that is not a standalone
+      # action"): check-upstream -> generate-pins -> deploy-rig/verify-rig -> capture-chain-read,
+      # all committed together.
       - name: rig under the shared 8545 lock
         run: |
           exec 9>>"$HOME/.cfmm-rig-8545.lock"
@@ -104,8 +119,9 @@ jobs:
           echo "gams-evm-transport rig-e2e, run ${GITHUB_RUN_ID:-?}, pid $$" > "$HOME/.cfmm-rig-8545.lock"
           : > "$RUNNER_TEMP/rig-owned-8545"
           trap 'bash rig/deploy-rig.sh --stop || true' EXIT
+          export PGSTORE_DSN="postgresql://postgres:${PG_PASS}@127.0.0.1:55433/postgres"
           cabal build --enable-tests -j all
-          bash rig/check-upstream.sh && bash rig/verify-import.sh
+          bash rig/verify-import.sh
           bash rig/deploy-rig.sh && bash rig/verify-rig.sh
           RIG_TESTS=1 cabal test
       - if: always()

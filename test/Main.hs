@@ -1525,9 +1525,10 @@ purge_roots = ["lib", "app", "test", "rig", "migrations"]
 -- | EVERYTHING THIS PACKAGE TRACKS, for the scans whose subject is "any tracked file": the
 -- credential scan, the ungated-renderer-token scan and the endpoint census (whose declared
 -- sites include spec/types.md, LOOP.md and rig/README.md). The submodule is excluded because
--- its files are cfmm-numopt's to scan; docs/ and .github/ because they hold no code, no
--- credential and no endpoint site -- and a census that walked them would have to declare
--- every prose mention there too.
+-- its files are cfmm-numopt's to scan; docs/ holds no code, no credential and no endpoint
+-- site -- and a census that walked it would have to declare every prose mention there too.
+-- .github/ holds no code and no endpoint site; its one DSN is assembled at run time from a
+-- throwaway loopback password, never written as a credential literal.
 repo_roots :: [FilePath]
 repo_roots = purge_roots ++ ["spec", "LOOP.md", "todo.md", "README.md"]
 

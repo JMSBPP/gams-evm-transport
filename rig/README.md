@@ -76,6 +76,16 @@ DEDICATED checkout, never a developer's own worktree: `deploy-rig.sh` writes `br
 tree, so a `PLANK_ROOT` shared with anything else risks exactly the kind of cross-job interference
 `develop-gate.yml`'s own `--stop` ordering already guards against for anvil's port.
 
+`rig-e2e` builds the rig from the ref recorded in `rig/import-ref.txt`, checked out with
+`git checkout -q --detach "$(cat rig/import-ref.txt)"` — never `origin/develop`'s moving tip — and
+it deliberately never runs `check-upstream.sh`, which is the step that MOVES that ref. This is a
+ruling, not an oversight: `rig-e2e` VALIDATES THE COMMITTED ARTIFACTS AT THEIR RECORDED REF, and
+moving that ref is a human cycle, not something a CI job does on every PR. Moving it — a re-pin —
+is the sequence stated above: `check-upstream.sh` (moves `import-ref.txt`), then
+`generate-pins.sh`, then `deploy-rig.sh`/`verify-rig.sh` against the new ref, then
+`capture-chain-read.sh` (and every other `rig/capture-*.sh` this ref's evidence depends on), all
+committed together in the ONE commit that re-pins `import-ref.txt`.
+
 The last step is the run itself, not a smoke test. It drives both price mechanisms and all three
 order shapes against the standing rig and writes `rig/driver-run-capture.json` —
 committed — carrying the five-step cheat-swap path with its E3 per step, and the `orders` block
