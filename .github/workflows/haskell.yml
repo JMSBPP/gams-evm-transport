@@ -1,0 +1,114 @@
+name: haskell
+on:
+  pull_request:
+    branches: [main]          # PR-only, like develop-gate: one approval per change, not two
+  workflow_dispatch:
+    inputs:
+      rig_e2e:
+        description: "also run the rig end-to-end job"
+        type: boolean
+        default: false
+concurrency:
+  group: haskell-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+
+jobs:
+  approve:
+    runs-on: ubuntu-latest
+    environment: transport-gate
+    timeout-minutes: 5
+    steps:
+      - run: echo "approved — the self-hosted jobs may start"
+
+  build-test:
+    needs: [approve]
+    runs-on: [self-hosted, cfmm-build]
+    timeout-minutes: 45
+    env:
+      GIT_TERMINAL_PROMPT: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true          # cfmm-numopt only; its lean4-spec is not recursed
+          persist-credentials: false
+      - run: echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+      - run: |
+          [ "$(ghc --numeric-version 2>/dev/null)" = "9.10.3" ] || ghcup install ghc 9.10.3 --set
+          command -v cabal >/dev/null || ghcup install cabal recommended --set
+          ghc --version && cabal --version && cabal update
+      - name: build, -Wall gate
+        run: |
+          set -o pipefail
+          cabal build --enable-tests -j all 2>&1 | tee "$RUNNER_TEMP/cabal-build.log"
+          WARN_RE='^(lib|app|test)/[^ ]*:[0-9]+:[0-9]+: warning:'
+          probe=lib/WallGateProbe.hs
+          printf 'module WallGateProbe where\nwallGateProbe = ()\n' > "$probe"
+          probe_out=$(ghc -Wall -fno-code -v0 -outputdir "$RUNNER_TEMP/wall-probe" "$probe" 2>&1 || true)
+          rm -f "$probe"
+          printf '%s\n' "$probe_out" | grep -qE "$WARN_RE" || { echo "::error::-Wall positive control failed"; printf '%s\n' "$probe_out"; exit 1; }
+          compiled=$(grep -cE '^\[ *[0-9]+ of [0-9]+\] Compiling' "$RUNNER_TEMP/cabal-build.log" || true)
+          expected=$(find lib app test -name '*.hs' | wc -l)
+          [ "$compiled" -ge "$expected" ] || { echo "::error::compiled $compiled < $expected .hs files (warm dist-newstyle?)"; exit 1; }
+          ! grep -qE "$WARN_RE" "$RUNNER_TEMP/cabal-build.log" || { grep -nE "$WARN_RE" "$RUNNER_TEMP/cabal-build.log"; exit 1; }
+      - name: tier-1 suite (no rig, no Postgres, no monorepo)
+        run: env -u PLANK_ROOT -u RIG_TESTS cabal test
+      - name: prover conformance subset against the pinned submodule
+        run: |
+          D=$(mktemp -d); cp cfmm-numopt/model/mev_tax_model_one/volume_path.gms "$D/"
+          ( cd "$D" && gams volume_path.gms action=ce lo=0 curdir="$D" >/dev/null 2>&1 )
+          got=$(sha256sum "$D/volume_path.json" | cut -d' ' -f1)
+          want=$(jq -r '.golden.sha256' rig/gams-conformance.json)
+          msha=$(sha256sum cfmm-numopt/model/mev_tax_model_one/volume_path.gms | cut -d' ' -f1)
+          mrec=$(jq -r '.model_sources[0].sha256' rig/gams-conformance.json)
+          [ "$got" = "$want" ] || { echo "::error::golden drift: $got != $want"; exit 1; }
+          [ "$msha" = "$mrec" ] || { echo "::error::model drift: submodule $msha != recorded $mrec"; exit 1; }
+          rm -rf "$D"
+          git status --porcelain | grep -q . && { echo "::error::suite left the tree dirty"; git status --porcelain; exit 1; } || true
+
+  rig-e2e:
+    if: github.event_name == 'workflow_dispatch' && inputs.rig_e2e
+    needs: [build-test]
+    runs-on: [self-hosted, cfmm-build]
+    timeout-minutes: 90       # flock may wait up to 30 min; develop-gate budgets 60 for the rig alone
+    env:
+      GIT_TERMINAL_PROMPT: "0"
+      PGSTORE_DSN: "postgresql://postgres:postgres@127.0.0.1:55433/postgres"
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true, persist-credentials: false }
+      - run: echo "$HOME/.ghcup/bin" >> "$GITHUB_PATH"
+      - run: |
+          [ -n "${PLANK_ROOT:-}" ] || { echo "::error::PLANK_ROOT is not set in the runner's .env"; exit 1; }
+          echo "PLANK_ROOT=$PLANK_ROOT"
+      - name: prepare the dedicated monorepo checkout (the same steps develop-gate runs)
+        run: |
+          cd "$PLANK_ROOT"
+          git fetch origin && git checkout -q --detach origin/develop
+          git submodule update --init lib/panoptic-v2-core
+          git -C lib/panoptic-v2-core config submodule.lib/panoptic-helper.update none
+          git submodule update --init --recursive
+          make plank-toolchain
+          npm ci --ignore-scripts
+      - name: postgres (port 55433 — same as rig/capture-store-conformance.sh; never run both at once on this host)
+        run: |
+          docker rm -f gams-evm-transport-pg >/dev/null 2>&1 || true
+          docker run -d --name gams-evm-transport-pg -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:55433:5432 postgres:18-alpine
+          for i in $(seq 1 30); do docker exec gams-evm-transport-pg pg_isready -U postgres && break; sleep 1; done
+          docker exec gams-evm-transport-pg pg_isready -U postgres || { echo "::error::postgres never became ready"; exit 1; }
+      - name: rig under the shared 8545 lock
+        run: |
+          exec 9>>"$HOME/.cfmm-rig-8545.lock"
+          flock -w 1800 9 || { echo "::error::rig lock held by: $(cat "$HOME/.cfmm-rig-8545.lock")"; exit 1; }
+          echo "gams-evm-transport rig-e2e, run ${GITHUB_RUN_ID:-?}, pid $$" > "$HOME/.cfmm-rig-8545.lock"
+          : > "$RUNNER_TEMP/rig-owned-8545"
+          trap 'bash rig/deploy-rig.sh --stop || true' EXIT
+          cabal build --enable-tests -j all
+          bash rig/check-upstream.sh && bash rig/verify-import.sh
+          bash rig/deploy-rig.sh && bash rig/verify-rig.sh
+          RIG_TESTS=1 cabal test
+      - if: always()
+        run: |
+          [ -f "$RUNNER_TEMP/rig-owned-8545" ] && bash rig/deploy-rig.sh --stop || true
+          docker rm -f gams-evm-transport-pg >/dev/null 2>&1 || true
