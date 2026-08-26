@@ -230,3 +230,5 @@ path), it is a genuine contract drift -- record it in the partition file; do not
 real `PLANK_ROOT`, GREEN (skipped) bare. Re-verifying and re-pointing `consumer_test_path` /
 `consumer_path_constant` at `MevTaxVolumePathV4.t.sol` / `FIXTURE` is follow-up work outside Task
 4's scope (the check's own assertion, not its gating, is what would need to change).
+
+Re-pointed in fix round 1 (commit 2c8902f); passes against origin/develop d2b1c51.

@@ -19963,22 +19963,32 @@ a_missing_fixture_directory_is_a_loud_named_failure =
 --
 -- Never a merge. This branch does not carry @test\/models\/@ at all and must not: that tree belongs
 -- to the @mev_tax_model_one@ track.
+--
+-- RE-POINTED at Task 4's fix round 1: the VolumePath replay -- and its fixture-path constant --
+-- moved on @origin\/develop@ from @AlgebraIntegralMevTaxModelOneShocks.t.sol@ (constant
+-- @VOLUME_PATH_JSON@) to @MevTaxVolumePathV4.t.sol@ (constant @FIXTURE@); see
+-- @docs\/superpowers\/plans\/2026-08-26-partition.md@'s \"monorepo-contract drift\" section for the
+-- measurement. The STRING VALUE never moved -- both declare
+-- @test\/models\/mev_tax_model_one\/fixtures\/volume_path.json@ -- only the file and the
+-- identifier did, so this is a re-point of the subject, not a change to the contract itself.
 consumer_test_path :: FilePath
-consumer_test_path = "test/models/mev_tax_model_one/AlgebraIntegralMevTaxModelOneShocks.t.sol"
+consumer_test_path = "test/models/mev_tax_model_one/MevTaxVolumePathV4.t.sol"
 
 -- | A path that is NOT in that tree, so the upstream reader can be shown saying NO as well as YES.
 consumer_absent_path :: FilePath
 consumer_absent_path = "test/models/mev_tax_model_one/NoSuchConsumer.t.sol"
 
 -- | The name of the consumer's own path constant. The contract of issue #25, in one identifier.
+-- RE-POINTED alongside 'consumer_test_path': the consumer's declaration is now
+-- @string constant FIXTURE = "test\/models\/mev_tax_model_one\/fixtures\/volume_path.json";@.
 consumer_path_constant :: String
-consumer_path_constant = "VOLUME_PATH_JSON"
+consumer_path_constant = "FIXTURE"
 
 -- | The string literals DECLARED for a named Solidity constant, in source order.
 --
 -- Three conditions, and the third is what makes the extraction unambiguous: the line must name the
 -- constant, must be an assignment, and must be a @constant@ DECLARATION. Without the third,
--- @string memory json = vm.readFile(VOLUME_PATH_JSON);@ is an assignment naming the constant and
+-- @string memory json = vm.readFile(FIXTURE);@ is an assignment naming the constant and
 -- the extractor would have to guess. The caller asserts the result has exactly ONE element, so an
 -- extractor that started matching two lines fails HERE rather than silently taking the first.
 solidity_constant_literals :: String -> String -> [String]
@@ -19994,7 +20004,8 @@ solidity_constant_literals name contents =
 -- | LOOP-04's cross-track contract, as a LIVE TRIP-WIRE on @origin\/develop@.
 --
 -- 'Loop.Config.default_fixture_path' is compared BYTE FOR BYTE against the consumer's own
--- @VOLUME_PATH_JSON@, read out of the forge test through @git show@. 28-03 could only compare it
+-- @FIXTURE@ (formerly @VOLUME_PATH_JSON@; see 'consumer_test_path'), read out of the forge test
+-- through @git show@. 28-03 could only compare it
 -- against @default_fixture_dir \<\/\> fixture_file_name@ -- a join, which is this side agreeing with
 -- itself and is true for every possible value of both halves.
 --
