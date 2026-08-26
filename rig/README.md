@@ -25,7 +25,7 @@ offchain/rig/verify-rig.sh       # SC-2: every contract answers a live read
 cabal build --enable-tests -j all && cabal test  # SC-3/SC-4: manifest loads; pins recompute
 
 # the DRIVER. RIG_SEED is optional: unset, a seed is DRAWN and printed.
-RIG_SEED=123456789 cabal run cfmm-replicationPlank-rpc-api
+RIG_SEED=123456789 cabal run gams-evm-transport
 ```
 
 The last step is the run itself, not a smoke test. It drives both price mechanisms and all three
@@ -188,9 +188,9 @@ too.
 
 ```bash
 S=123456789
-offchain/rig/deploy-rig.sh && RIG_SEED=$S cabal run cfmm-replicationPlank-rpc-api
+offchain/rig/deploy-rig.sh && RIG_SEED=$S cabal run gams-evm-transport
 cp offchain/rig/driver-run-capture.json /tmp/replay-a.json
-offchain/rig/deploy-rig.sh && RIG_SEED=$S cabal run cfmm-replicationPlank-rpc-api   # FRESH rig
+offchain/rig/deploy-rig.sh && RIG_SEED=$S cabal run gams-evm-transport   # FRESH rig
 cp offchain/rig/driver-run-capture.json /tmp/replay-b.json
 
 PROJ='{ticks: [.steps[].tick], e3: [.steps[].e3.tick], ids: [.orders.mixed.readbacks[].id]}'
@@ -229,7 +229,7 @@ deterministic and replayable, but it means the three drivers are not independent
 | `offchain/rig/rig-manifest.json` | NO (gitignored) | `offchain/rig/deploy-rig.sh` (from `broadcast/**/run-latest.json`) | `Rig.Manifest`, the drivers |
 | `offchain/rig/batch-return-capture.json` | YES | `offchain/rig/capture-batch-return.sh` | `cabal test`'s `rpin05_*` checks |
 | `offchain/rig/cheat-swap-proof.json` | YES | `offchain/rig/capture-cheat-swap-proof.sh` (`cheat-swap-proof` executable) | `cabal test`'s `driv01_cheat_swap_proof_*`, `driv01_cheated_tick_reaches_e3`, `driv01_wrong_pool_is_silent`, `driv01_same_second_is_a_silent_noop`, `driv01_extreme_tick_is_survivable` |
-| `offchain/rig/driver-run-capture.json` | YES | `cabal run cfmm-replicationPlank-rpc-api` | `cabal test`'s `driv01_run_capture_*`, `driv01_e3_per_step_matches_submitted`, `driv01_no_same_second_noop`, `driv01_legacy_write_price_still_ran`, and all four `driv02_*` checks |
+| `offchain/rig/driver-run-capture.json` | YES | `cabal run gams-evm-transport` | `cabal test`'s `driv01_run_capture_*`, `driv01_e3_per_step_matches_submitted`, `driv01_no_same_second_noop`, `driv01_legacy_write_price_still_ran`, and all four `driv02_*` checks |
 
 `RIG_CHEAT_SWAP_PROOF` and `DRIVER_CAPTURE` override the last two paths. They differ in SCOPE and
 deliberately so: `RIG_CHEAT_SWAP_PROOF` redirects the CHECKS only (the capture tool always writes
@@ -254,9 +254,9 @@ with nothing to restore from but git.
 Write beside the target and rename:
 
 ```bash
-cabal build lib:cfmm-replicationPlank-rpc-api
+cabal build lib:gams-evm-transport
 OUT=offchain/rig/peer-haskell-bytes.json
-cabal exec -- runghc --ghc-arg=-package --ghc-arg=cfmm-replicationPlank-rpc-api \
+cabal exec -- runghc --ghc-arg=-package --ghc-arg=gams-evm-transport \
   offchain/rig/gen-peer-bytes.hs > "$OUT.raw" \
   && jq . "$OUT.raw" > "$OUT.tmp" \
   && mv "$OUT.tmp" "$OUT" && rm -f "$OUT.raw"

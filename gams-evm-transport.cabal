@@ -11,7 +11,7 @@ cabal-version:      3.12
 --   http://haskell.org/cabal/users-guide/
 --
 -- The name of the package.
-name:               cfmm-replicationPlank-rpc-api
+name:               gams-evm-transport
 
 -- The package version.
 -- See the Haskell package versioning policy (PVP) for standards
@@ -29,7 +29,7 @@ version:            0.1.0.0
 -- description:
 
 -- The license under which the package is released.
-license:            BSD-3-Clause
+license:            MIT
 
 -- The file containing the license text.
 license-file:       LICENSE
@@ -46,7 +46,6 @@ category:           Data
 build-type:         Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
-extra-doc-files:    CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -322,12 +321,12 @@ library
                       crypton
 
     -- Directories containing source files.
-    hs-source-dirs:   offchain/lib/
+    hs-source-dirs:   lib/
 
     -- Base language which the package is written in.
     default-language: Haskell2010
 
-executable cfmm-replicationPlank-rpc-api
+executable gams-evm-transport
     import:           warnings
     main-is:          Main.hs
     other-modules:    Sample
@@ -339,7 +338,7 @@ executable cfmm-replicationPlank-rpc-api
     -- enters the build plan.
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         web3-solidity,
         web3-provider,
         mwc-random,
@@ -348,7 +347,7 @@ executable cfmm-replicationPlank-rpc-api
         text,
         web3-ethereum,
         process
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 -- The cheat-swap capture tool. A SEPARATE executable rather than a flag inside the demo driver's
@@ -375,7 +374,7 @@ executable chain-read-conformance
     main-is:          ChainReadConformance.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         aeson,
         bytestring,
         text,
@@ -385,7 +384,7 @@ executable chain-read-conformance
         web3-provider,
         web3-solidity,
         jsonrpc-tinyclient
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 executable cheat-swap-proof
@@ -393,7 +392,7 @@ executable cheat-swap-proof
     main-is:          CheatSwapProof.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         aeson,
         bytestring,
         text,
@@ -401,7 +400,7 @@ executable cheat-swap-proof
         memory-hexstring,
         web3-ethereum,
         web3-provider
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 -- The store conformance capture. The ONE tool in this package that needs a database, which is why
@@ -419,7 +418,7 @@ executable store-conformance
     main-is:          StoreConformance.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         aeson,
         bytestring,
         text,
@@ -429,7 +428,7 @@ executable store-conformance
         crypton,
         postgresql-simple,
         postgresql-migration
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 -- The GAMS conformance capture. The ONE tool in this package that needs a solver, which is why it
@@ -454,13 +453,13 @@ executable gams-conformance
     main-is:          GamsConformance.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         aeson,
         bytestring,
         directory,
         filepath,
         process
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 -- The FEE-SPLIT differential capture. The second tool here that needs a solver, and the only one
@@ -487,13 +486,13 @@ executable fee-split-conformance
     main-is:          FeeSplitConformance.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         aeson,
         bytestring,
         directory,
         filepath,
         process
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 -- THE END-TO-END SPIKE. THROWAWAY BY CONSTRUCTION -- not a phase, not a requirement, not a check,
@@ -520,11 +519,11 @@ executable spike-end-to-end
     main-is:          SpikeEndToEnd.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         bytestring,
         directory,
         filepath
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
 -- THE RESIDENT LOOP. The one tool in this package that needs a chain AND a database AND a solver
@@ -548,7 +547,7 @@ executable loop
     main-is:          LoopMain.hs
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         bytestring,
         text,
         directory,
@@ -565,10 +564,10 @@ executable loop
         unix,
         web3-crypto,
         web3-solidity
-    hs-source-dirs:   offchain/app
+    hs-source-dirs:   app
     default-language: Haskell2010
 
-test-suite cfmm-replicationPlank-rpc-api-test
+test-suite gams-evm-transport-test
     -- Import common warning flags.
     import:           warnings
 
@@ -585,7 +584,7 @@ test-suite cfmm-replicationPlank-rpc-api-test
     type:             exitcode-stdio-1.0
 
     -- Directories containing source files.
-    hs-source-dirs:   offchain/test
+    hs-source-dirs:   test
 
     -- The entrypoint to the test suite.
     main-is:          Main.hs
@@ -600,7 +599,7 @@ test-suite cfmm-replicationPlank-rpc-api-test
     -- project dependencies of the library, so no new package enters the build plan.
     build-depends:
         base ^>=4.20.2.0,
-        cfmm-replicationPlank-rpc-api,
+        gams-evm-transport,
         web3-crypto,
         aeson,
         bytestring,
