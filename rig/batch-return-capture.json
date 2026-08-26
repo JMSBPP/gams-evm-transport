@@ -4,7 +4,7 @@
   "manager": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
   "blockNumber": 9,
   "signature": "create_orders(uint256,uint256[])",
-  "_provenance": "Every returndata string below was read off a live chain by offchain/rig/capture-batch-return.sh, against the rig stood up by offchain/rig/deploy-rig.sh. The manager address was read from offchain/rig/rig-manifest.json (gitignored) and is copied here because a machine that never stood the rig up has nothing else to check this artifact against. Nothing here was transcribed from a hand-off document.",
+  "_provenance": "Every returndata string below was read off a live chain by rig/capture-batch-return.sh, against the rig stood up by rig/deploy-rig.sh. The manager address was read from rig/rig-manifest.json (gitignored) and is copied here because a machine that never stood the rig up has nothing else to check this artifact against. Nothing here was transcribed from a hand-off document.",
   "_scope_limit": "These are eth_call results. No state was changed, no transaction was sent and no receipt exists, so the order ids below are the ids the calls WOULD have assigned against the orderCount live at blockNumber -- not ids that exist on chain. Re-running against a rig whose orderCount has advanced legitimately shifts the orderId words and nothing else.",
   "_golden_diff": {
     "N0_empty": {

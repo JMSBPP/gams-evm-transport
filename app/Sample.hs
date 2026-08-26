@@ -4,7 +4,7 @@
 -- Sample DATA for the demo driver -- and nothing else.
 --
 -- Three address literals used to live here. They are gone: every address the demo touches now
--- comes from @offchain\/rig\/rig-manifest.json@, loaded once by @Rig.Manifest.load_rig@ in "Main".
+-- comes from @rig\/rig-manifest.json@, loaded once by @Rig.Manifest.load_rig@ in "Main".
 --
 -- The reason is measured, not stylistic. Those literals were right only by anvil nonce accident,
 -- and one of them had already gone stale against a redeployed rig while still looking perfectly
@@ -53,7 +53,7 @@ sample_order =
 -- reach the module at all.
 --
 -- The discriminator is skew = 65535, identified and used LIVE against this same module in Phase 21
--- (offchain/rig/capture-batch-return.sh, case N2_success_then_fail). Its two halves:
+-- (rig/capture-batch-return.sh, case N2_success_then_fail). Its two halves:
 --
 --   * WIDTH-valid   -- pack_vol_order_input's `in_range 16` is `> 0 && < 2^16`, and 65535 < 65536.
 --   * DOMAIN-invalid -- spread_tick_assimetry_is_complete admits only [1, 65534].

@@ -597,7 +597,7 @@ call_word label to calldata ref = do
     then Left (label ++ " returned NO DATA at block " ++ show (block_height ref)
                  ++ " -- an eth_call to an address with no code answers with empty bytes, so the"
                  ++ " likeliest cause is that the manifest names a contract this chain does not"
-                 ++ " hold. Re-run: bash offchain/rig/deploy-rig.sh")
+                 ++ " hold. Re-run: bash rig/deploy-rig.sh")
     else Right (BS.foldl' (\acc b -> acc * 256 + toInteger b) 0 bytes)
 
 -- | The fee the hook would charge at this block: @(fee, volatility)@, both read at 'BlockRef'.

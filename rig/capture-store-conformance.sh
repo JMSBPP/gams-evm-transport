@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # capture-store-conformance.sh -- stand a real Postgres up, drive every
 # database-requiring observation against it, and record the result in
-# offchain/rig/store-conformance.json.
+# rig/store-conformance.json.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -44,17 +44,17 @@
 # provision and nothing to skip.
 #
 # USAGE
-#   bash offchain/rig/capture-store-conformance.sh
+#   bash rig/capture-store-conformance.sh
 #
 # It provisions and REMOVES its own container. It does not touch the chain rig,
-# it does not read another worktree, and it never writes to offchain/migrations.
+# it does not read another worktree, and it never writes to migrations.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-OUT=offchain/rig/store-conformance.json
-GOLDEN=offchain/rig/volume-path-golden.json
-MIGRATIONS=offchain/migrations
+OUT=rig/store-conformance.json
+GOLDEN=rig/volume-path-golden.json
+MIGRATIONS=migrations
 
 # Configuration, not credentials. The image tag is a deliberate, documented pin
 # (DB-04) and the port is deliberately NOT the default: a developer's own local

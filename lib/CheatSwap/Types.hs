@@ -53,7 +53,7 @@ pools_slot :: Integer
 pools_slot = 6
 
 -- | A non-negative 'Integer' as a 32-byte big-endian word. Built by shifting rather than from a hex
--- string: the offchain literal purge greps this file.
+-- string: the off-chain literal purge greps this file.
 word32be :: Integer -> BS.ByteString
 word32be n = BS.pack [fromIntegral ((n `shiftR` (8 * i)) .&. 0xff) | i <- [31, 30 .. 0]]
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # capture-chain-read.sh -- CHAIN-02's OBSERVATIONAL half, against the LIVE rig,
-# recorded in offchain/rig/chain-read-conformance.json.
+# recorded in rig/chain-read-conformance.json.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -14,7 +14,7 @@
 # DB-free, GAMS-free, and as of 27-02 chain-free).
 #
 # So the divergence is constructed here and the artifact is what the suite then
-# asserts over, offline. The sequence is in offchain/app/ChainReadConformance.hs;
+# asserts over, offline. The sequence is in app/ChainReadConformance.hs;
 # this script owns the PRECONDITIONS, the artifact preservation, and the
 # self-checks that stop a vacuous capture from being committed.
 #
@@ -30,8 +30,8 @@
 # silently recorded a non-divergence would be committed and believed.
 #
 # USAGE
-#   bash offchain/rig/deploy-rig.sh          # stands the rig up, leaves anvil running
-#   bash offchain/rig/capture-chain-read.sh
+#   bash rig/deploy-rig.sh          # stands the rig up, leaves anvil running
+#   bash rig/capture-chain-read.sh
 #
 # NOTE: this MUTATES the chain. It writes a new tick into the pool's Slot0 and
 # mines. It is not idempotent against a fixed chain state and it must not be run
@@ -41,13 +41,13 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-MANIFEST="${RIG_MANIFEST:-offchain/rig/rig-manifest.json}"
-IMPORT_REF=offchain/rig/import-ref.txt
-OUT=offchain/rig/chain-read-conformance.json
-# CHAIN-06. Sourced, never re-spelled -- offchain/rig/endpoint.sh states the default once for the
+MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
+IMPORT_REF=rig/import-ref.txt
+OUT=rig/chain-read-conformance.json
+# CHAIN-06. Sourced, never re-spelled -- rig/endpoint.sh states the default once for the
 # shell side and Chain.Endpoint states it once for the Haskell side, and the suite asserts the two
 # statements BYTE-EQUAL.
-. offchain/rig/endpoint.sh
+. rig/endpoint.sh
 RPC="$RPC_URL"
 
 # --- Preconditions: FAIL LOUDLY AND BY NAME, never skip ---------------------
@@ -58,7 +58,7 @@ RPC="$RPC_URL"
 # what was missing.
 if [ ! -f "$MANIFEST" ]; then
   echo "CAPTURE FAIL: no manifest at $(realpath -m "$MANIFEST")" >&2
-  echo "              stand the rig up first: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              stand the rig up first: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 if [ ! -f "$IMPORT_REF" ]; then
@@ -70,7 +70,7 @@ for key in PoolManager; do
   value=$(jq -r --arg k "$key" '.contracts[$k] // ""' "$MANIFEST")
   if [ -z "$value" ]; then
     echo "CAPTURE FAIL: $(realpath -m "$MANIFEST") has no contracts.$key" >&2
-    echo "              re-run: bash offchain/rig/deploy-rig.sh" >&2
+    echo "              re-run: bash rig/deploy-rig.sh" >&2
     exit 1
   fi
 done
@@ -84,7 +84,7 @@ if ! cast block-number --rpc-url "$RPC" >/dev/null 2>&1; then
   echo "              This is NOT a skip. CHAIN-02's evidence is an observation against a real" >&2
   echo "              chain, and a capture that quietly did nothing would leave the committed" >&2
   echo "              artifact stale while reporting success." >&2
-  echo "              Stand the rig up first: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              Stand the rig up first: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 

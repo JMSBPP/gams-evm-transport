@@ -2,11 +2,11 @@
 -- THE ONE MODULE IN THE LOOP LAYER THAT NAMES THE TRANSPORT.
 --
 -- It builds a 'Loop.Poll.ChainSource' out of a resolved endpoint and the three addresses the
--- filter needs. Everything else in @offchain\/lib\/Loop\/@ takes that record as an argument and is
+-- filter needs. Everything else in @lib\/Loop\/@ takes that record as an argument and is
 -- therefore drivable with no node, which is what lets LOOP-01's restart proof exist at all: the
 -- check controls what the chain did while the loop was down, because the check IS the chain.
 --
--- It is imported by @offchain\/app\/LoopMain.hs@ and by nothing under @offchain\/test\/@, and it
+-- It is imported by @app\/LoopMain.hs@ and by nothing under @test\/@, and it
 -- is listed in 'Chain.Endpoint.endpoint_sites' as a consumer. That listing is not bookkeeping: the
 -- census reads the manifest against the tree in BOTH directions, so a new file that reaches a
 -- chain and is not listed is a failure naming it.

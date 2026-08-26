@@ -16,7 +16,7 @@
 -- exact failure this milestone exists to kill, moved one layer up.
 --
 -- The signature parser here is a SECOND, INDEPENDENT implementation of the two normalisation
--- rules that @offchain\/rig\/generate-pins.sh@ implements in awk. That is deliberate. The rules
+-- rules that @rig\/generate-pins.sh@ implements in awk. That is deliberate. The rules
 -- are (a) balanced-paren accumulation across continuation @\/\/@ lines, and (b) strip @indexed@,
 -- strip trailing parameter identifiers, strip whitespace -- idempotently.
 module Main (main) where
@@ -53,6 +53,7 @@ import System.Directory
   ( createDirectoryIfMissing
   , doesDirectoryExist
   , doesFileExist
+  , doesPathExist
   , getCurrentDirectory
   , getPermissions
   , getTemporaryDirectory
@@ -115,7 +116,7 @@ import Chain.Shock
   )
 -- Phase 27's endpoint resolver, imported for its MANIFEST and its SEARCH TERMS as much as for the
 -- resolver itself. Every string the census below greps for lives in THAT module and NOT ONE of
--- them is spelled here, which is not tidiness. @offchain\/rig\/README.md@ records a hand-run grep
+-- them is spelled here, which is not tidiness. @rig\/README.md@ records a hand-run grep
 -- over this file for three tokens -- the two ways of reaching a chain, one per language, and the
 -- default authority's port -- and states that it counts 0, which is the standing claim that
 -- @cabal test@ opens no socket. A scan that spelled its own subjects would be the thing that
@@ -504,12 +505,12 @@ import VolOrder.Types (VolOrder (..))
 -- This was a hardcoded @FilePath@ constant, and it is the THIRD instance of one defect in this
 -- module. 22-03 measured it for @RIG_MANIFEST@ and 22-04 for @proof_file@: an override that is
 -- advertised in @Rig.Manifest@'s own error messages (\"Override the path with the RIG_PINS
--- environment variable\") and in @offchain\/rig\/README.md@ (line 274), and silently ignored here.
+-- environment variable\") and in @rig\/README.md@ (line 274), and silently ignored here.
 --
 -- This paragraph has now been wrong in BOTH directions, which is the whole lesson.
 --
 -- It first said @verify-rig.sh@ honoured @RIG_PINS@. That was false and had always been false
--- (@grep -c RIG_PINS offchain\/rig\/verify-rig.sh@ returns 0), so a falsification aimed at that
+-- (@grep -c RIG_PINS rig\/verify-rig.sh@ returns 0), so a falsification aimed at that
 -- script would have been aimed at nothing. It was corrected to \"the ONE honourer is
 -- 'Rig.Manifest.rig_pins_path'\" -- true of the Haskell surface, and false of the repo the moment
 -- the shell half was fixed.
@@ -561,7 +562,7 @@ manifest_file :: IO FilePath
 manifest_file = rig_manifest_path
 
 deploy_command :: String
-deploy_command = "bash offchain/rig/deploy-rig.sh"
+deploy_command = "bash rig/deploy-rig.sh"
 
 -- ---------------------------------------------------------------------------------------------
 -- Hashing
@@ -762,7 +763,7 @@ ground_truth =
     )
     -- CHAIN-04's @Shock@ topic0 USED TO BE A ROW HERE, and it is deliberately not one any more.
     -- Its emitter (@src\/models\/mev_tax_model_one\/libraries\/ShockLib.plk@) was on
-    -- @origin\/develop@ only, so @offchain\/rig\/generate-pins.sh@ -- which reads files present in
+    -- @origin\/develop@ only, so @rig\/generate-pins.sh@ -- which reads files present in
     -- THIS worktree -- could not produce the pin and this list was the only home available. The
     -- develop merge brought the emitter here, the generator now derives the pin from it (see that
     -- script's QUOTED_SIG_SPECS block), and the pin surface is the right home: it recomputes with
@@ -826,7 +827,7 @@ expect False why = Left why
 --
 -- 29 selectors and 4 topics went unverified and nothing said so.
 --
--- @offchain\/rig\/generate-pins.sh@ carries @MIN_SELECTORS@\/@MIN_TOPICS@ floors, but it is the
+-- @rig\/generate-pins.sh@ carries @MIN_SELECTORS@\/@MIN_TOPICS@ floors, but it is the
 -- PRODUCER and it hardcodes its own output path: the floor is unreachable through the path this
 -- suite reads. The consumer has to hold its own copy of the expectation, and this is it.
 --
@@ -907,7 +908,7 @@ expected_topic_pins =
 -- 'every_advertised_override_is_honoured' covers ADVERTISED variables only, so nothing in the
 -- module claims otherwise.
 import_ref_file :: FilePath
-import_ref_file = "offchain/rig/import-ref.txt"
+import_ref_file = "rig/import-ref.txt"
 
 -- | The pin file's @generatedFrom@ IS the imported source-of-truth ref, not merely a 40-hex string
 -- that three artifacts happen to share.
@@ -920,9 +921,9 @@ sc4_generated_from_is_the_imported_ref pins =
       _ <- expect (is_git_object_name anchor)
              (import_ref_file ++ " holds " ++ show anchor ++ ", which is not a 40-character git"
                ++ " object name. It is written by a command substitution in"
-               ++ " offchain/rig/check-upstream.sh, and a failed substitution yields \"\""
+               ++ " rig/check-upstream.sh, and a failed substitution yields \"\""
                ++ " silently -- an empty anchor would then be satisfied by an empty pin."
-               ++ " Re-run: bash offchain/rig/check-upstream.sh")
+               ++ " Re-run: bash rig/check-upstream.sh")
       expect (pinned == anchor)
         (pins_file_label ++ " records generatedFrom " ++ show pinned ++ " but " ++ import_ref_file
           ++ " names " ++ show anchor ++ ". Every OTHER generatedFrom assertion in this module is"
@@ -930,8 +931,8 @@ sc4_generated_from_is_the_imported_ref pins =
           ++ " against the run capture -- and a coordinated value written into all of them"
           ++ " satisfies every one of them while naming no real import. This is the only"
           ++ " assertion that compares the ref to something outside that set, and"
-          ++ " offchain/rig/verify-import.sh is what binds THAT file to the tree."
-          ++ " Regenerate: bash offchain/rig/generate-pins.sh")
+          ++ " rig/verify-import.sh is what binds THAT file to the tree."
+          ++ " Regenerate: bash rig/generate-pins.sh")
 
 -- | THE RETIRED SET, PINNED FOR THE REASON THE LIVE SETS ARE.
 --
@@ -974,7 +975,7 @@ sc4_pin_surface_is_the_expected_set pins =
              ++ " and takes the total down with it, so the run still reports \"SC-3 and SC-4 OK\""
              ++ " while verifying less. If a pin was added or retired ON PURPOSE, edit "
              ++ expectation ++ " in this module and say so; otherwise regenerate:"
-             ++ " bash offchain/rig/generate-pins.sh")
+             ++ " bash rig/generate-pins.sh")
 
     render [] = "(none)"
     render xs = intercalate ", " xs
@@ -1212,11 +1213,11 @@ sc3_corrupted_manifest_fails = Check "sc3_corrupted_manifest_fails" . guarded $ 
 
 -- | THE PURGE SCOPE, AND WHY IT IS THIS SCOPE.
 --
--- The check covers @*.hs@ and @*.sh@ under @offchain\/@ -- the EXECUTABLE surface. CONTEXT's
+-- The check covers @*.hs@ and @*.sh@ under this tree -- the EXECUTABLE surface. CONTEXT's
 -- "no whitelist" requirement is about exactly that: "the manifest cannot be quietly bypassed"
 -- means no code path may reach an address without going through the manifest.
 --
--- @offchain\/spec\/types.md@ holds a pasted RPC transcript containing addresses, a selector and
+-- @spec\/types.md@ holds a pasted RPC transcript containing addresses, a selector and
 -- an anvil private key. It is documentation of a past session, it is never executed, and
 -- redacting it would destroy evidence rather than close a hole. Scoping by FILE TYPE is a stated
 -- rule with a reason; a list of individual exempted files is what CONTEXT forbade, and there is
@@ -1227,17 +1228,17 @@ sc3_corrupted_manifest_fails = Check "sc3_corrupted_manifest_fails" . guarded $ 
 -- thirty-six files and found nothing\" AND for \"matched no files at all\" -- a moved directory, a
 -- typo in the root, an @--include@ that stopped matching. Absence read as success, with no floor
 -- underneath it and no evidence the pattern could match anything. A new @.py@ or @.ts@ under
--- @offchain\/@ was silently exempt for the same reason: the scope is expressed as an
+-- this tree was silently exempt for the same reason: the scope is expressed as an
 -- @--include@ whitelist, and a whitelist cannot report what it did not select.
 --
 -- So: (1) a POSITIVE CONTROL, the same argument vector over a temp tree seeded with a real
 -- literal, which must EXIT 0 and name the seeded files -- absence can no longer read as success
 -- because the pattern is shown matching before it is trusted not to; (2) an EXTENSION CENSUS over
--- @offchain\/@, so a file type that is not in the scanned set has to be declared here rather than
+-- this tree, so a file type that is not in the scanned set has to be declared here rather than
 -- slipping through unscanned; (3) a FLOOR on the scanned-file count; and only then (4) the purge.
 --
 -- The floor is a floor rather than a pinned count on purpose, and it is the one relation in this
--- check: four tracks add @.hs@ files to @offchain\/@ legitimately and often, so an exact count
+-- check: four tracks add @.hs@ files to this tree legitimately and often, so an exact count
 -- would fail on every addition and be raised reflexively, which is how a pin becomes a rubber
 -- stamp. The failure mode the floor exists for -- the scan SHRINKING to nothing -- is discriminated
 -- by @>=@ exactly. The scope question that @>=@ cannot answer is answered by (2) instead.
@@ -1252,7 +1253,7 @@ purge_pattern =
 -- | The file types the purge SCANS. Kept next to 'purge_known_extensions' so the gap between what
 -- exists and what is scanned is visible in one place.
 --
--- The SQL entry arrived at 23-03 with @offchain\/migrations\/@, and it is SCANNED rather than
+-- The SQL entry arrived at 23-03 with @migrations\/@, and it is SCANNED rather than
 -- merely declared because SQL is EXECUTED content -- it creates the tables the whole store rests
 -- on. This check's own failure text states the rule: /"Either add it to purge_scanned_extensions
 -- (if code runs from it) or to purge_known_extensions with the reason it is data."/ Free-passing an
@@ -1261,8 +1262,8 @@ purge_pattern =
 purge_scanned_extensions :: [String]
 purge_scanned_extensions = [".hs", ".sh", ".sql"]
 
--- | Every file type that currently exists under @offchain\/@. @.json@, @.md@ and @.txt@ are data
--- and prose, never executed; @offchain\/spec\/types.md@ deliberately holds a pasted RPC transcript
+-- | Every file type that currently exists under this tree. @.json@, @.md@ and @.txt@ are data
+-- and prose, never executed; @spec\/types.md@ deliberately holds a pasted RPC transcript
 -- and redacting it would destroy evidence rather than close a hole. Anything NOT on this list is a
 -- file type nobody has decided about, and an undecided file type must not default to exempt.
 purge_known_extensions :: [String]
@@ -1276,7 +1277,7 @@ purge_known_extensions = [".hs", ".json", ".md", ".sh", ".sql", ".txt"]
 -- silently become five. A floor that is inherited rather than re-measured records the tree as it
 -- was on the day someone last thought about it.
 --
--- 55 = @find offchain \\( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \\) -type f | wc -l@,
+-- 55 = @find lib app test rig migrations \\( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \\) -type f | wc -l@,
 -- RE-MEASURED COLD on 2026-08-16 during plan 24-03 with @Gams\/Run.hs@ on disk: 45 Haskell, 8
 -- shell, 2 SQL.
 --
@@ -1305,7 +1306,7 @@ purge_known_extensions = [".hs", ".json", ".md", ".sh", ".sql", ".txt"]
 -- reflexively and stops being read. What it must never do again is sit unexamined while the tree
 -- moves under it.
 --
--- The extension census under @offchain\/@ at this measurement: @hs 45, sh 8, json 8, md 3, txt 2,
+-- The extension census under this tree at this measurement: @hs 45, sh 8, json 8, md 3, txt 2,
 -- sql 2@. Only @.hs@ moved since 24-01, by four -- three library modules from 24-02 and
 -- @Gams\/Run.hs@ from 24-03. The @.json@ count is unchanged: 24-03 writes no capture artifact, and
 -- every stub it spawns is BUILT into a temp directory rather than committed.
@@ -1321,7 +1322,7 @@ purge_known_extensions = [".hs", ".json", ".md", ".sh", ".sql", ".txt"]
 -- @rig\/capture-gams-conformance.sh@ -- and a fourth, @rig\/gams-conformance.json@, which only
 -- 'credential_scan_floor' reads. Both numbers below come from running the two @find@ commands at
 -- execution time, in the same sitting, and NEITHER from adding three to the old value: 58 against
--- exactly 58 scanned files, zero slack. Census under @offchain\/@ at that measurement:
+-- exactly 58 scanned files, zero slack. Census under this tree at that measurement:
 -- @hs 47, sh 9, json 8, md 3, txt 2, sql 2@; @.json@ went to 9 one commit later when the capture
 -- artifact landed, which moved 'credential_scan_floor' a second time and left this one alone --
 -- the two are re-measured together every time and they do NOT always move together.
@@ -1331,12 +1332,12 @@ purge_known_extensions = [".hs", ".json", ".md", ".sh", ".sql", ".txt"]
 -- than inheriting it -- which matters, because the plan brief this executor was handed said 55 and
 -- 55 is 24-04's stale number. After @migrations\/003_version_columns_nonempty.sql@ landed:
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 59
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 68
 --
--- 59 against exactly 59 scanned files, zero slack. Census under @offchain\/@ at that measurement:
+-- 59 against exactly 59 scanned files, zero slack. Census under this tree at that measurement:
 -- @hs 47, sh 9, json 9, md 3, txt 2, sql 3@. A @.sql@ is a SCANNED type for BOTH scans, so this is
 -- the one kind of file that moves both floors by the same amount in the same commit -- and the two
 -- commands were still both run, because deriving one from the other is what 24-02 did and 24-03 is
@@ -1344,152 +1345,179 @@ purge_known_extensions = [".hs", ".json", ".md", ".sh", ".sql", ".txt"]
 --
 -- RE-MEASURED COLD AT 25-01, in the same sitting as 'credential_scan_floor' and by running the
 -- command rather than adding one to the number that was beside it: 59 against exactly 59 with the
--- tree as 24-06 left it, and 60 against exactly 60 once @offchain\/lib\/Store\/Key.hs@ landed. The
+-- tree as 24-06 left it, and 60 against exactly 60 once @lib\/Store\/Key.hs@ landed. The
 -- floor moves in the SAME COMMIT as the file that moves it, which is why it is here and not in
 -- this plan's last task.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 60
 --
 -- RE-MEASURED COLD AT 25-02 TASK 1, in the same sitting as 'credential_scan_floor' and by running
 -- the command rather than by adding one to the number above it, with
--- @offchain\/lib\/Store\/Solver.hs@ on disk. Census under @offchain\/@ at that measurement:
+-- @lib\/Store\/Solver.hs@ on disk. Census under this tree at that measurement:
 -- @hs 49, sh 9, json 9, md 3, txt 2, sql 3@. 61 against exactly 61 scanned files, zero slack.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 61
 --
 -- RE-MEASURED COLD AGAIN AT 25-02 TASK 2, both halves of the pair, with
--- @offchain\/lib\/Store\/Cache.hs@ on disk: 62 against exactly 62, zero slack. Census:
+-- @lib\/Store\/Cache.hs@ on disk: 62 against exactly 62, zero slack. Census:
 -- @hs 50, sh 9, json 9, md 3, txt 2, sql 3@. Two commits of this plan each add one @.hs@ and each
 -- re-runs both commands, because the number this floor is compared against is the one @find@
 -- printed at that commit and not the one before it plus one.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 62
 --
 -- RE-MEASURED COLD AT 26-01 TASK 1, in the same sitting as 'credential_scan_floor' and by running
--- the command rather than by adding one to the 62 above it, with @offchain\/lib\/Fee\/Split.hs@ on
--- disk: 63 against exactly 63, zero slack. Census under @offchain\/@ at that measurement:
+-- the command rather than by adding one to the 62 above it, with @lib\/Fee\/Split.hs@ on
+-- disk: 63 against exactly 63, zero slack. Census under this tree at that measurement:
 -- @hs 51, sh 9, json 9, sql 3@. The number below is what @find@ PRINTED at this commit; the
 -- pre-phase-25 figures this plan was drafted against (59, then 60) were hypotheses by the time it
--- ran, because phase 25 executed first and landed three @.hs@ files of its own under @offchain@.
+-- ran, because phase 25 executed first and landed three @.hs@ files of its own under this tree.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 63
 --
 -- RE-MEASURED COLD AT 26-02 TASK 1, in the same sitting as 'credential_scan_floor' and by running
--- the command rather than by adding one to the 63 above it, with @offchain\/lib\/Chain\/Shock.hs@
--- on disk: 64 against exactly 64, zero slack. Census under @offchain\/@ at that measurement:
+-- the command rather than by adding one to the 63 above it, with @lib\/Chain\/Shock.hs@
+-- on disk: 64 against exactly 64, zero slack. Census under this tree at that measurement:
 -- @hs 52, sh 9, json 9, sql 3@. The wave-start reading, taken COLD before this plan edited
 -- anything, was 63 — so the delta is the one @.hs@ this plan creates, and it was CONFIRMED by
 -- running the command at both ends rather than inferred from the file count.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 64
 --
 -- RE-MEASURED COLD AT THE END-TO-END SPIKE, in the same sitting as 'credential_scan_floor' and by
 -- running the command rather than by adding one to the 64 above it, with
--- @offchain\/app\/SpikeEndToEnd.hs@ on disk: 65 against exactly 65, zero slack. Census under
--- @offchain\/@ at that measurement: @hs 53, sh 9, json 9, sql 3@. The spike is THROWAWAY, so this
+-- @app\/SpikeEndToEnd.hs@ on disk: 65 against exactly 65, zero slack. Census under
+-- this tree at that measurement: @hs 53, sh 9, json 9, sql 3@. The spike is THROWAWAY, so this
 -- is the one entry above that is expected to be REMOVED rather than superseded -- and when the
 -- file goes, this floor comes back to 64 by running the command again, not by subtracting one.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 65
 --
 -- RE-MEASURED COLD AT 26-04, in the same sitting as 'credential_scan_floor' and by running the
 -- command rather than by adding two to the 65 above it: 67 against exactly 67, zero slack. Census
--- under @offchain\/@ at that measurement: @hs 54, sh 10, json 10, sql 3@. The wave-start reading,
+-- under this tree at that measurement: @hs 54, sh 10, json 10, sql 3@. The wave-start reading,
 -- taken COLD before this plan edited anything, was 65, and this plan adds exactly two files this
--- scan can see -- @offchain\/app\/FeeSplitConformance.hs@ and @offchain\/rig\/capture-fee-split.sh@.
+-- scan can see -- @app\/FeeSplitConformance.hs@ and @rig\/capture-fee-split.sh@.
 -- The prediction and the measurement agree, and both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 67
 --
 -- RE-MEASURED COLD AT 27-01, in the same sitting as 'credential_scan_floor' and by running the
 -- command rather than by adding two to the 67 above it: 69 against exactly 69, zero slack. Census
--- under @offchain\/@ at that measurement: @hs 55, sh 11, json 10, sql 3@. The wave-start reading,
+-- under this tree at that measurement: @hs 55, sh 11, json 10, sql 3@. The wave-start reading,
 -- taken COLD before this plan edited anything, was 67, and this plan adds exactly two files this
--- scan can see -- @offchain\/lib\/Chain\/Endpoint.hs@ and @offchain\/rig\/endpoint.sh@, the two
+-- scan can see -- @lib\/Chain\/Endpoint.hs@ and @rig\/endpoint.sh@, the two
 -- halves of the one endpoint resolver. The prediction and the measurement agree, and both ends
 -- were RUN. Note that this floor and its twin move by the SAME two here, where 26-04 moved them by
 -- two and three: this plan commits no artifact, so the @.json@ census is unchanged at 10.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 69
 --
 -- RE-MEASURED COLD AT 27-02 TASK 1, in the same sitting as 'credential_scan_floor' and by RUNNING
 -- the command rather than by adding one to the 69 above it: 70 against exactly 70, zero slack.
--- Census under @offchain\/@ at that measurement: @hs 56, sh 11, json 10, sql 3@. The wave-start
+-- Census under this tree at that measurement: @hs 56, sh 11, json 10, sql 3@. The wave-start
 -- reading, taken COLD before this plan edited anything, was 69, and this task adds exactly ONE file
--- this scan can see -- @offchain\/lib\/Chain\/Read.hs@. Both floors move by one here and BOTH ENDS
+-- this scan can see -- @lib\/Chain\/Read.hs@. Both floors move by one here and BOTH ENDS
 -- WERE RUN; the task that adds the capture script and its artifact moves them again and by
 -- DIFFERENT amounts, which is why they are re-measured per task and not per plan.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 70
 --
 -- RE-MEASURED COLD AT 27-02 TASK 3, in the same sitting as 'credential_scan_floor' and by RUNNING
 -- the command rather than by adding two to the 70 above it: 72 against exactly 72, zero slack.
--- Census under @offchain\/@ at that measurement: @hs 57, sh 12, json 11, sql 3@. This task adds
--- exactly TWO files this scan can see -- @offchain\/app\/ChainReadConformance.hs@ and
--- @offchain\/rig\/capture-chain-read.sh@ -- and a THIRD, @chain-read-conformance.json@, that it
+-- Census under this tree at that measurement: @hs 57, sh 12, json 11, sql 3@. This task adds
+-- exactly TWO files this scan can see -- @app\/ChainReadConformance.hs@ and
+-- @rig\/capture-chain-read.sh@ -- and a THIRD, @chain-read-conformance.json@, that it
 -- cannot. So the two floors part company here by exactly one, which is what task 1's note above
 -- predicted in advance. Prediction and measurement agree and BOTH ENDS WERE RUN.
 --
 -- RE-MEASURED COLD AT 28-01, in the same sitting as 'credential_scan_floor' and by RUNNING the
 -- command rather than by adding three to the 72 above it: 75 against exactly 75, zero slack.
--- Census under @offchain\/@ at that measurement: @hs 59, sh 12, json 11, sql 4@. The wave-start
+-- Census under this tree at that measurement: @hs 59, sh 12, json 11, sql 4@. The wave-start
 -- reading, taken COLD before this plan edited anything, was 72, and this plan adds exactly THREE
--- files both scans can see -- @offchain\/lib\/Loop\/Solve.hs@, @offchain\/lib\/Loop\/Ledger.hs@ and
--- @offchain\/migrations\/004_loop_ledger.sql@. A @.sql@ is a scanned type for BOTH scans, and this
+-- files both scans can see -- @lib\/Loop\/Solve.hs@, @lib\/Loop\/Ledger.hs@ and
+-- @migrations\/004_loop_ledger.sql@. A @.sql@ is a scanned type for BOTH scans, and this
 -- plan RE-TAKES the store-conformance capture rather than creating one, so the @.json@ census is
 -- unchanged at 11 and the two floors move by the SAME three for the first time since 24-06.
 -- Prediction and measurement agree and BOTH ENDS WERE RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 75
 -- RE-MEASURED COLD AT 28-02, in the same sitting as 'credential_scan_floor' and by RUNNING the
 -- command rather than by adding six to the 75 above it: 81 against exactly 81, zero slack. Census
--- under @offchain\/@ at that measurement: @hs 65, sh 12, json 11, sql 4@. The wave-start reading,
+-- under this tree at that measurement: @hs 65, sh 12, json 11, sql 4@. The wave-start reading,
 -- taken COLD before this plan edited anything, was 75, and this plan adds exactly SIX files both
--- scans can see -- @offchain\/lib\/Gams\/Detect.hs@, @offchain\/lib\/Loop\/Config.hs@,
--- @offchain\/lib\/Loop\/Poll.hs@, @offchain\/lib\/Loop\/Chain.hs@,
--- @offchain\/lib\/Loop\/Run.hs@ and @offchain\/app\/LoopMain.hs@. This plan commits no
+-- scans can see -- @lib\/Gams\/Detect.hs@, @lib\/Loop\/Config.hs@,
+-- @lib\/Loop\/Poll.hs@, @lib\/Loop\/Chain.hs@,
+-- @lib\/Loop\/Run.hs@ and @app\/LoopMain.hs@. This plan commits no
 -- artifact and no script, so the @.json@ and @.sh@ censuses do not move and the two floors move by
 -- the SAME six. Prediction and measurement agree, and both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 81
 -- RE-MEASURED COLD AT 28-03, in the same sitting as 'credential_scan_floor' and by RUNNING the
 -- command rather than by adding one to the 81 above it: 82 against exactly 82, zero slack. Census
--- under @offchain\/@ at that measurement: @hs 66, sh 12, json 11, sql 4@. This plan adds exactly
--- ONE file both scans can see -- @offchain\/lib\/Loop\/Publish.hs@ -- and commits no artifact and
+-- under this tree at that measurement: @hs 66, sh 12, json 11, sql 4@. This plan adds exactly
+-- ONE file both scans can see -- @lib\/Loop\/Publish.hs@ -- and commits no artifact and
 -- no script, so the @.json@ and @.sh@ censuses do not move and the two floors move by the SAME
 -- one. Prediction and measurement agree, and both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' \) -type f | wc -l
 -- > 82
 purge_file_floor :: Int
 purge_file_floor = 84
 
+-- | The EXECUTABLE surface: what the literal purge scans. Explicit, because the repository
+-- root now also holds the cfmm-numopt submodule (.gms, Makefile, CI), docs/ and .github/,
+-- none of which is this package's code and none of which should silently widen or narrow
+-- the scan.
+purge_roots :: [FilePath]
+purge_roots = ["lib", "app", "test", "rig", "migrations"]
+
+-- | EVERYTHING THIS PACKAGE TRACKS, for the scans whose subject is "any tracked file": the
+-- credential scan, the ungated-renderer-token scan and the endpoint census (whose declared
+-- sites include spec/types.md, LOOP.md and rig/README.md). The submodule is excluded because
+-- its files are cfmm-numopt's to scan; docs/ and .github/ because they hold no code, no
+-- credential and no endpoint site -- and a census that walked them would have to declare
+-- every prose mention there too.
+repo_roots :: [FilePath]
+repo_roots = purge_roots ++ ["spec", "LOOP.md", "todo.md", "README.md"]
+
 -- | The purge scan, as ONE argument vector, so the positive control runs the identical invocation
 -- over a different root rather than a lookalike of it.
-purge_scan :: FilePath -> IO (ExitCode, String, String)
-purge_scan root =
+purge_scan :: [FilePath] -> IO (ExitCode, String, String)
+purge_scan roots =
   readProcessWithExitCode
     "grep"
-    (["-rnE", purge_pattern, root] ++ map ("--include=*" ++) purge_scanned_extensions)
+    (["-rnE", purge_pattern] ++ roots ++ map ("--include=*" ++) purge_scanned_extensions)
     ""
 
--- | Every file under a root, recursively.
+-- | Every file under a root, recursively. A root that does not exist on disk contributes no
+-- files rather than throwing -- 'repo_roots' names README.md before Task 7 creates it, and a
+-- census over a root list must tolerate a member that has not landed yet. A root that names a
+-- FILE rather than a directory (LOOP.md, todo.md, README.md) is itself the one file it walks to.
 walk_files :: FilePath -> IO [FilePath]
 walk_files root = do
-  entries <- listDirectory root
-  nested <- mapM step entries
-  pure (concat nested)
+  exists <- doesPathExist root
+  if not exists
+    then pure []
+    else do
+      is_dir <- doesDirectoryExist root
+      if not is_dir
+        then pure [root]
+        else do
+          entries <- listDirectory root
+          nested <- mapM step entries
+          pure (concat nested)
   where
     step entry = do
       let path = root </> entry
@@ -1498,7 +1526,7 @@ walk_files root = do
 
 -- | The seeded literal, BUILT rather than written. A 40-hex constant spelled out in this module
 -- would be found by the very scan it is here to exercise, and the check would fail on its own
--- control. Constructing it keeps @offchain\/test\/Main.hs@ inside its own purge scope.
+-- control. Constructing it keeps @test\/Main.hs@ inside its own purge scope.
 purge_control_literal :: String
 purge_control_literal = "0x" ++ replicate 40 'a'
 
@@ -1520,7 +1548,7 @@ purge_positive_control = do
     writeFile hs_bait ("bait :: String\nbait = \"" ++ purge_control_literal ++ "\"\n")
     writeFile sh_bait ("#!/usr/bin/env bash\nADDR=" ++ purge_control_literal ++ "\n")
     writeFile py_bait ("BAIT = \"" ++ purge_control_literal ++ "\"\n")
-    (code, out, err) <- purge_scan dir
+    (code, out, err) <- purge_scan [dir]
     pure $ do
       _ <- expect (code == ExitSuccess)
              ("the purge's POSITIVE CONTROL did not fire: grep exited " ++ show code
@@ -1542,15 +1570,15 @@ purge_positive_control = do
 sc3_literal_purge :: Check
 sc3_literal_purge = Check "sc3_literal_purge" . guarded $ do
   control <- purge_positive_control
-  files   <- walk_files "offchain"
-  (code, out, err) <- purge_scan "offchain"
+  files   <- concat <$> mapM walk_files purge_roots
+  (code, out, err) <- purge_scan purge_roots
   let present   = nub (sort (map takeExtension files))
       undeclared = filter (`notElem` purge_known_extensions) present
       scanned   = filter ((`elem` purge_scanned_extensions) . takeExtension) files
   pure $ do
     _ <- control
     _ <- expect (null undeclared)
-           ("offchain/ holds file types this check has never decided about: "
+           ("the purge roots hold file types this check has never decided about: "
              ++ intercalate ", " undeclared
              ++ ". The purge scans " ++ intercalate " and " purge_scanned_extensions
              ++ " only, so an undeclared type is EXEMPT and nothing says so -- which is how a new"
@@ -1612,7 +1640,7 @@ mask_of bits = (1 `shiftL` bits) - 1
 -- this note used to say the rig's own deployed pool had a tick spacing of 10 while the module
 -- pinned 20, and reported that as a real module-vs-pool discrepancy. It was RESOLVED in PR #18
 -- (ref @2039f27@, imported by plan 22-01), finding **F2**: @DeployDynamicFeeHook.s.sol@ now
--- declares @TICK_SPACING = 20@, so @.pool.tickSpacing@ in @offchain\/rig\/rig-manifest.json@ reads
+-- declares @TICK_SPACING = 20@, so @.pool.tickSpacing@ in @rig\/rig-manifest.json@ reads
 -- 20 and module and pool AGREE. The VALUE below did not move; only the claim about the pool did.
 --
 -- The claim in the paragraph above -- "module and pool AGREE" -- was for two rounds asserted
@@ -1701,7 +1729,7 @@ rpin01_encoder_selector_is_recomputed pins =
                ++ " dispatch")
       case Map.lookup "create_order" (pin_selectors pins) of
         Nothing -> Left ("rig-pins.json has no selectors.create_order -- regenerate it with: "
-                          ++ "bash offchain/rig/generate-pins.sh")
+                          ++ "bash rig/generate-pins.sh")
         Just entry ->
           let pinned = map toLower (T.unpack (pin_value entry))
           in expect (pinned == "0x" ++ recomputed)
@@ -2074,7 +2102,7 @@ retired_value :: RigPins -> T.Text -> Either String Integer
 retired_value pins name =
   case Map.lookup name (pin_retired pins) of
     Nothing -> Left ("rig-pins.json has no retired." ++ T.unpack name
-                      ++ " -- regenerate it with: bash offchain/rig/generate-pins.sh")
+                      ++ " -- regenerate it with: bash rig/generate-pins.sh")
     Just t  -> integer_of_hex_text (T.unpack t)
 
 -- | The topic0 is RECOMPUTED from the signature parsed out of the interface file, and the pin is
@@ -2096,7 +2124,7 @@ rpin04_topic0_is_recomputed pins = Check "rpin04_topic0_is_recomputed" . guarded
            ("keccak of " ++ sig ++ " gave " ++ recomputed ++ ", expected " ++ truth_value)
     case Map.lookup "VolOrderCreated" (pin_topics pins) of
       Nothing -> Left ("rig-pins.json has no topics.VolOrderCreated -- regenerate it with: "
-                        ++ "bash offchain/rig/generate-pins.sh")
+                        ++ "bash rig/generate-pins.sh")
       Just entry ->
         let pinned = map toLower (T.unpack (pin_value entry))
         in expect (pinned == "0x" ++ recomputed)
@@ -2220,7 +2248,7 @@ rpin04_retired_topic0s_are_rejected pins =
 -- ---------------------------------------------------------------------------------------------
 -- Phase 21, RPIN-06: targetVega is genuinely COMPARED on readback, not merely carried
 --
--- @verify_mined_order@ (@offchain\/lib\/VolOrder\/Rpc.hs@ lines 94-104) reads the stored word
+-- @verify_mined_order@ (@lib\/VolOrder\/Rpc.hs@ lines 94-104) reads the stored word
 -- back and compares WHOLE 'VolOrder's with the derived 'Eq':
 --
 -- > let actual_order = unpack_vol_order_storage packed
@@ -2570,7 +2598,7 @@ vega01_out_of_band_draw_fails_loudly =
 -- RPIN-05 says @decode_create_orders_result@ must be verified against the LIVE module rather
 -- than assumed from the handoff document. The live half was done by plan 21-02, which captured
 -- four real @eth_call@ returns off the Phase-20 rig into
--- @offchain\/rig\/batch-return-capture.json@ WITH PROVENANCE (chain id, manager address, block
+-- @rig\/batch-return-capture.json@ WITH PROVENANCE (chain id, manager address, block
 -- number) travelling inside the artifact, because @rig-manifest.json@ is gitignored and cannot
 -- be the carrier.
 --
@@ -2588,7 +2616,7 @@ vega01_out_of_band_draw_fails_loudly =
 -- ---------------------------------------------------------------------------------------------
 
 capture_file :: FilePath
-capture_file = "offchain/rig/batch-return-capture.json"
+capture_file = "rig/batch-return-capture.json"
 
 -- | READ ONLY. The Solidity-testing track's fixture (Phase 19, MVER-03). Its @expected@ bytes
 -- were produced by @cast abi-encode@ (alloy, cast 1.5.1-stable) -- an encoder OUTSIDE this repo
@@ -2600,7 +2628,7 @@ golden_file :: FilePath
 golden_file = "test/pos_spec/fixtures/vol_order_return_golden.json"
 
 capture_command :: String
-capture_command = "bash offchain/rig/capture-batch-return.sh"
+capture_command = "bash rig/capture-batch-return.sh"
 
 -- | The golden belongs to another track, so \"regenerate it\" is the WRONG instruction and is
 -- deliberately not given here.
@@ -3153,7 +3181,7 @@ rpin05_no_canonical_bool_violation = Check "rpin05_no_canonical_bool_violation" 
 -- 256-bit two's-complement words. E5 is the same two-topic shape over 64 bytes
 -- @[sigma, fee]@, both unsigned.
 --
--- This is the FIRST signed-integer decoding anywhere in @offchain\/@, which is why the negative
+-- This is the FIRST signed-integer decoding anywhere in this tree, which is why the negative
 -- values below are pinned as exact literals rather than as sign predicates: an unsigned read of
 -- @averageTick = -200@ yields 115792089237316195423570985008687907853269984665640564039457584007913129639736,
 -- and a 24-bit-masked read yields 16777016. Both are numbers, both look like data, and neither
@@ -3453,7 +3481,7 @@ driv01_slot0_composition_behavior =
 -- ---------------------------------------------------------------------------------------------
 
 cheat_swap_encoding_file :: FilePath
-cheat_swap_encoding_file = "offchain/lib/CheatSwap/Encoding.hs"
+cheat_swap_encoding_file = "lib/CheatSwap/Encoding.hs"
 
 -- | A synthetic @0x@-prefixed address, BUILT AT RUNTIME. A 40-hex-digit literal in this file would
 -- redden 'sc3_literal_purge', which is the whole point of the rule.
@@ -3598,7 +3626,7 @@ driv01_swap_calldata_shape = Check "driv01_swap_calldata_shape" . guarded $ do
 -- DRIV-01: the committed cheat-swap proof
 --
 -- These five checks are the OFFLINE half of plan 22-04. The chain half ran once, in
--- offchain/rig/capture-cheat-swap-proof.sh, and committed its result; everything below reads that
+-- rig/capture-cheat-swap-proof.sh, and committed its result; everything below reads that
 -- artifact and asserts it by EXACT VALUE. Nothing here opens a socket -- the suite's
 -- chain-independence is a measured property of this workstream, not an aspiration, and a suite
 -- that needs a rig is a suite that gets skipped.
@@ -3618,17 +3646,17 @@ driv01_swap_calldata_shape = Check "driv01_swap_calldata_shape" . guarded $ do
 -- damaging the evidence it guards.
 --
 -- SCOPE, stated so the two halves cannot drift apart the way 22-03's did: this variable redirects
--- the CHECKS only. @offchain\/rig\/capture-cheat-swap-proof.sh@ always writes the committed path,
+-- the CHECKS only. @rig\/capture-cheat-swap-proof.sh@ always writes the committed path,
 -- because a capture that could be redirected is a capture that can silently fail to update the
 -- artifact everything else reads.
 proof_file :: IO FilePath
 proof_file = fromMaybe default_proof_file <$> lookupEnv "RIG_CHEAT_SWAP_PROOF"
 
 default_proof_file :: FilePath
-default_proof_file = "offchain/rig/cheat-swap-proof.json"
+default_proof_file = "rig/cheat-swap-proof.json"
 
 proof_command :: String
-proof_command = "bash offchain/rig/capture-cheat-swap-proof.sh"
+proof_command = "bash rig/capture-cheat-swap-proof.sh"
 
 -- | 27-02's artifact: CHAIN-02's OBSERVATIONAL half, produced out of band.
 --
@@ -3638,7 +3666,7 @@ proof_command = "bash offchain/rig/capture-cheat-swap-proof.sh"
 -- aimed at a mutant and could only be falsified by damaging the evidence it guards.
 --
 -- SCOPE, stated so the two halves cannot drift the way 22-03's did: this variable redirects the
--- CHECKS only. @offchain\/rig\/capture-chain-read.sh@ always writes the committed path, because a
+-- CHECKS only. @rig\/capture-chain-read.sh@ always writes the committed path, because a
 -- capture that could be redirected is a capture that can silently fail to update the artifact
 -- everything else reads.
 chain_read_conformance_path :: IO FilePath
@@ -3646,10 +3674,10 @@ chain_read_conformance_path =
   fromMaybe default_chain_read_conformance <$> lookupEnv "CHAIN_READ_CONFORMANCE"
 
 default_chain_read_conformance :: FilePath
-default_chain_read_conformance = "offchain/rig/chain-read-conformance.json"
+default_chain_read_conformance = "rig/chain-read-conformance.json"
 
 chain_read_conformance_command :: String
-chain_read_conformance_command = "bash offchain/rig/capture-chain-read.sh"
+chain_read_conformance_command = "bash rig/capture-chain-read.sh"
 
 -- | The measurements the artifact must carry, in order. A group that fails at capture time still
 -- emits a placeholder row, so a SHORTER list means a measurement was dropped rather than recorded
@@ -4128,7 +4156,7 @@ driv01_seed_is_reproducible = Check "driv01_seed_is_reproducible" . guarded $ do
 --
 -- == THE ORDINAL, AND WHY IT IS THE SECOND DRAW
 --
--- @gen@ is consumed SEQUENTIALLY by the driver (@offchain\/app\/Main.hs@). @run_price_gen@ draws
+-- @gen@ is consumed SEQUENTIALLY by the driver (@app\/Main.hs@). @run_price_gen@ draws
 -- FIRST (the legacy @PriceSetterHook@ path, line 199); @run_cheat_swap_path@ draws SECOND (line
 -- 202) and its ticks are the ones that reach @steps[]@. Both fold over the SAME
 -- @sample_price_gen@ shape, so the two draws are the same length and differ only in stream
@@ -4294,7 +4322,7 @@ advertised_overrides =
 -- script, and the ten Tier-C checks below name this same constant in their failures rather than
 -- spelling the command a second time.
 gams_conformance_command :: String
-gams_conformance_command = "bash offchain/rig/capture-gams-conformance.sh"
+gams_conformance_command = "bash rig/capture-gams-conformance.sh"
 
 -- | The out-of-band command that produces the fee-split differential.
 --
@@ -4302,7 +4330,7 @@ gams_conformance_command = "bash offchain/rig/capture-gams-conformance.sh"
 -- and the Tier-C failures below pointing at two different scripts -- the same reason its GAMS-side
 -- sibling above is declared here rather than spelled at each use.
 fee_split_conformance_command :: String
-fee_split_conformance_command = "bash offchain/rig/capture-fee-split.sh"
+fee_split_conformance_command = "bash rig/capture-fee-split.sh"
 
 -- | EVERY advertised override is honoured, and the resolved path is actually CONSUMED.
 --
@@ -4310,7 +4338,7 @@ fee_split_conformance_command = "bash offchain/rig/capture-fee-split.sh"
 --
 -- Three separate path constants in this module have now been measured as advertised-but-dead:
 -- @RIG_MANIFEST@ (22-03), @proof_file@ \/ @RIG_CHEAT_SWAP_PROOF@ (22-04) and @RIG_PINS@ (22-07).
--- In each case the variable was documented in @offchain\/rig\/README.md@, named in
+-- In each case the variable was documented in @rig\/README.md@, named in
 -- @Rig.Manifest@'s own error messages (\"Override the path with the ... environment variable\")
 -- and honoured by the shell half of the rig -- and ignored here. The consequence is the same
 -- every time and it is not a documentation bug: the falsification aimed THROUGH the variable
@@ -4666,17 +4694,17 @@ config_env_vars =
 
 -- | The two modules in which an environment variable of this subsystem is NAMED. Both config
 -- modules and nothing else: @Driver.Capture@ and @Driver.Seed@ carry their own variables and their
--- own guards, and widening this set to @offchain@ would pull in this file, which writes the
+-- own guards, and widening this set to the whole tree would pull in this file, which writes the
 -- identifiers out and would therefore always match.
 config_modules :: [FilePath]
 config_modules =
-  [ "offchain/lib/Store/Config.hs"
-  , "offchain/lib/Gams/Config.hs"
+  [ "lib/Store/Config.hs"
+  , "lib/Gams/Config.hs"
   -- 28-02. The loop's own config module, added in the commit that created it. It declares one
   -- variable, and that variable is probed by 'value_overrides' rather than by 'probe_override':
   -- see that list's haddock for why a THIRD shape was needed rather than a fourth entry in either
   -- of the two that already exist.
-  , "offchain/lib/Loop/Config.hs"
+  , "lib/Loop/Config.hs"
   ]
 
 -- | A top-level @_env_var@ declaration, anchored at both ends so a mention in prose or a local
@@ -4970,19 +4998,19 @@ fixture_legacy =
 -- ---------------------------------------------------------------------------------------------
 -- DRIV-01: SC-1 asserted BY VALUE over a committed live run
 --
--- All four checks below are PURE over @offchain\/rig\/driver-run-capture.json@ -- no chain, no
+-- All four checks below are PURE over @rig\/driver-run-capture.json@ -- no chain, no
 -- socket, no manifest beyond the freshness cross-check that every capture check in this suite
--- already does. The artifact is produced by @cabal run cfmm-replicationPlank-rpc-api@ against a
+-- already does. The artifact is produced by @cabal run gams-evm-transport@ against a
 -- standing rig; these checks are what turn it from a log into evidence.
 --
 -- SC-1's MECHANISM is superseded (22-CONTEXT's locked architecture decision: the hook self-writes
--- through @beforeSwap@ and the offchain side only observes, so nothing calls @writeTimepoint@). Its
+-- through @beforeSwap@ and the off-chain side only observes, so nothing calls @writeTimepoint@). Its
 -- required OUTCOME is unchanged and is what is asserted here: one E3 per step, carrying the tick
 -- and the timestamp the driver submitted.
 -- ---------------------------------------------------------------------------------------------
 
 driver_capture_command :: String
-driver_capture_command = "cabal run cfmm-replicationPlank-rpc-api"
+driver_capture_command = "cabal run gams-evm-transport"
 
 -- | Every step in the run, paired with its index, plus the run's own @t0@ and @stride@.
 --
@@ -5152,7 +5180,7 @@ refs_are_real subject captured pinned = do
            ++ " git object name. generate-pins.sh fills this from a command substitution, and a"
            ++ " failed substitution yields \"\" silently -- against an artifact that recorded the"
            ++ " same emptiness the freshness equality below would be satisfied by nothing."
-           ++ " Regenerate: bash offchain/rig/generate-pins.sh")
+           ++ " Regenerate: bash rig/generate-pins.sh")
   -- The git null object id is 40 hex digits, so the shape guard above accepts it and the
   -- equality below is satisfied by two of them. git emits it for real -- it is the "no such
   -- object" sentinel in every ref update and every hook -- so a generatedFrom filled from a
@@ -5170,7 +5198,7 @@ refs_are_real subject captured pinned = do
 -- @PriceSetterHook@'s address is CREATE2-MINED over its initcode, and the initcode carries solc's
 -- metadata hash. So the address moves whenever ANY global compiler input moves -- @remappings.txt@,
 -- @foundry.toml@, the solc version, the hook's own source or even its comments -- while no
--- @offchain\/@ file changes and 'addresses_agree' can only say "different deployment, re-take".
+-- file under this tree changes and 'addresses_agree' can only say "different deployment, re-take".
 -- MEASURED on PR #37: two added remappings changed EVERY contract's initcode, but only the
 -- CREATE2-mined hook moved; the CREATE-deployed contracts kept their (deployer, nonce) addresses.
 --
@@ -5536,7 +5564,7 @@ driv01_e3_per_step_matches_submitted =
 --
 -- Its FALSIFICATION is 22-04's measurement C, by name: @same_second_repeat_step2@ was measured at
 -- @e3_count = 0, e5_count = 1, status = 1@, i.e. exactly the receipt this check exists to catch.
--- That measurement is committed in @offchain\/rig\/cheat-swap-proof.json@ and is what makes this
+-- That measurement is committed in @rig\/cheat-swap-proof.json@ and is what makes this
 -- assertion a detector rather than a tautology.
 --
 -- == THE CONFIGURED-SIZE ASSERTION, AND WHY IT IS NOT REDUNDANT
@@ -5599,7 +5627,7 @@ legacy_pinned_tick = 60
 
 -- | The three remaining Slot0 fields of the committed legacy word.
 --
--- MEASURED off @offchain\/rig\/driver-run-capture.json@, then CHECKED for coherence rather than
+-- MEASURED off @rig\/driver-run-capture.json@, then CHECKED for coherence rather than
 -- taken on faith: @sqrtPriceX96 = 79466191966197645195421774833@ agrees with
 -- @1.0001^30 * 2^96 = 7.946619196619762e28@ to fifteen significant figures, i.e. to double
 -- precision, which is as close as a float can come to TickMath's exact integer. All three are
@@ -5735,7 +5763,7 @@ driv01_legacy_write_price_still_ran =
 -- DRIV-02: SC-2, SC-3 and SC-4 asserted BY VALUE over the same committed live run
 --
 -- All four checks below are PURE over the @orders@ block of
--- @offchain\/rig\/driver-run-capture.json@ -- no chain, no socket. They cover the three shapes
+-- @rig\/driver-run-capture.json@ -- no chain, no socket. They cover the three shapes
 -- @run_order_gen@ cannot produce on its own: it only ever calls the BATCH entrypoint (so no single
 -- @create_order@ receipt), every shape it builds is valid (so no batch is ever mixed), and a
 -- zero-arrival Poisson draw gives @chunk max_batch [] == []@, i.e. zero chunks and therefore zero
@@ -6187,7 +6215,7 @@ hex_word_integer w
 --   have independent PROVENANCE; only 'sc4_generated_from_is_the_imported_ref'-shaped external
 --   anchors do that.
 --
---   IT DOES NOT REACH @offchain\/rig\/batch-return-capture.json@ or
+--   IT DOES NOT REACH @rig\/batch-return-capture.json@ or
 --   @test\/pos_spec\/fixtures\/vol_order_return_golden.json@, which have no environment override.
 --   Mutating them would mean editing a committed artifact. 'unswept_artifacts' names them so the
 --   gap is on the record rather than implied by absence.
@@ -7458,7 +7486,7 @@ expected_corpus_members =
 -- TIER C: the committed conformance evidence, made LOAD-BEARING
 --
 -- Plan 23-04 stood a real @postgres:18-alpine@ up in Docker and DROVE every database-only
--- observation against it, into @offchain\/rig\/store-conformance.json@. Nothing in @cabal test@
+-- observation against it, into @rig\/store-conformance.json@. Nothing in @cabal test@
 -- read a byte of it. An artifact asserted by nothing is this repository's own issue #19 and it is
 -- the reason these checks exist: the evidence is only evidence once something reddens when it
 -- changes.
@@ -7474,7 +7502,7 @@ expected_corpus_members =
 -- ---------------------------------------------------------------------------------------------
 
 store_conformance_command :: String
-store_conformance_command = "bash offchain/rig/capture-store-conformance.sh"
+store_conformance_command = "bash rig/capture-store-conformance.sh"
 
 -- | The artifact, through the RESOLVER. FAIL-never-skip and the command, in one place.
 read_store_conformance :: IO (Either String Value)
@@ -7503,7 +7531,7 @@ recompute_migration_digest name = do
 -- witness in this repository -- the capture completes well inside the one-second stamp resolution,
 -- so two back-to-back runs share a timestamp and a stale file passes a timestamp comparison
 -- silently ('reason_generated_at' records that measurement). Freshness here is COMPUTED: each
--- migration's md5 is taken from @offchain\/migrations\/@ on this disk, right now, and compared to
+-- migration's md5 is taken from @migrations\/@ on this disk, right now, and compared to
 -- the digest the capture recorded. Edit a @.sql@ without re-capturing and this reddens with both
 -- numbers.
 --
@@ -8391,16 +8419,16 @@ credential_scanned_extensions = [".hs", ".sh", ".sql", ".json"]
 
 -- | ONE argument vector, so the positive control runs the identical invocation over a different
 -- root rather than a lookalike of it.
-credential_scan :: FilePath -> IO (ExitCode, String, String)
-credential_scan root =
+credential_scan :: [FilePath] -> IO (ExitCode, String, String)
+credential_scan roots =
   readProcessWithExitCode
     "grep"
-    (["-rnE", credential_pattern, root] ++ map ("--include=*" ++) credential_scanned_extensions)
+    (["-rnE", credential_pattern] ++ roots ++ map ("--include=*" ++) credential_scanned_extensions)
     ""
 
 -- | RE-MEASURED COLD on 2026-08-16 during plan 24-03, in the same commit as @Gams\/Run.hs@:
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 --
 -- 63 = 45 Haskell + 8 shell + 8 JSON + 2 SQL. It was 62 immediately before, against exactly 62
 -- files -- ZERO slack, so @Gams\/Run.hs@ would have reddened this scan in the commit that created
@@ -8441,48 +8469,48 @@ credential_scan root =
 --
 -- RE-MEASURED COLD AT 25-01 in the same sitting as 'purge_file_floor', by running the command
 -- below rather than by adding one: 68 against exactly 68 with the tree as 24-06 left it, and 69
--- against exactly 69 once @offchain\/lib\/Store\/Key.hs@ landed. A @.hs@ is a scanned type for
+-- against exactly 69 once @lib\/Store\/Key.hs@ landed. A @.hs@ is a scanned type for
 -- BOTH scans, so this is a commit in which the two floors move together -- and the two commands
 -- were still run separately, because deriving one from the other is the thing 24-03 caught.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 69
 --
 -- RE-MEASURED COLD AT 25-02 TASK 1, in the same sitting as 'purge_file_floor' and by running the
--- command below rather than by adding one, with @offchain\/lib\/Store\/Solver.hs@ on disk:
+-- command below rather than by adding one, with @lib\/Store\/Solver.hs@ on disk:
 -- @70 = 49 hs + 9 sh + 9 json + 3 sql@, against exactly 70 files, zero slack. A @.hs@ is a scanned
 -- type for BOTH scans, so this is another commit in which the two floors move together -- and the
 -- two commands were still run separately.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 70
 --
 -- RE-MEASURED COLD AGAIN AT 25-02 TASK 2, in the same sitting as 'purge_file_floor', with
--- @offchain\/lib\/Store\/Cache.hs@ on disk: @71 = 50 hs + 9 sh + 9 json + 3 sql@, against exactly
+-- @lib\/Store\/Cache.hs@ on disk: @71 = 50 hs + 9 sh + 9 json + 3 sql@, against exactly
 -- 71 files, zero slack.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 71
 --
 -- RE-MEASURED COLD AT 26-01 TASK 1, in the same sitting as 'purge_file_floor' and by running the
--- command below rather than by adding one, with @offchain\/lib\/Fee\/Split.hs@ on disk:
+-- command below rather than by adding one, with @lib\/Fee\/Split.hs@ on disk:
 -- @72 = 51 hs + 9 sh + 9 json + 3 sql@, against exactly 72 files, zero slack. A @.hs@ is a scanned
 -- type for BOTH scans, so this is another commit in which the two floors move together -- and the
 -- two commands were still run separately, which is the rule 24-03 exists to enforce.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 72
 --
 -- RE-MEASURED COLD AT 26-02 TASK 1, in the same sitting as 'purge_file_floor' and by running the
--- command below rather than by adding one, with @offchain\/lib\/Chain\/Shock.hs@ on disk:
+-- command below rather than by adding one, with @lib\/Chain\/Shock.hs@ on disk:
 -- @73 = 52 hs + 9 sh + 9 json + 3 sql@, against exactly 73 files, zero slack. Both floors moved
 -- together again, and the two commands were still run separately.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 73
 --
 -- RE-MEASURED COLD AT THE END-TO-END SPIKE, in the same sitting as 'purge_file_floor' and by
--- running the command below rather than by adding one, with @offchain\/app\/SpikeEndToEnd.hs@ on
+-- running the command below rather than by adding one, with @app\/SpikeEndToEnd.hs@ on
 -- disk: @74 = 53 hs + 9 sh + 9 json + 3 sql@, against exactly 74 files, zero slack. Both floors
 -- moved together again, and the two commands were still run separately. The spike is THROWAWAY:
 -- when it is deleted this floor returns to 73 by RUNNING the command, never by subtracting one.
@@ -8494,10 +8522,10 @@ credential_scan root =
 -- credential pasted into an artifact is the case this scan exists for, and this plan commits an
 -- artifact. The two commands were still run separately.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 77
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 74
 --
 -- RE-MEASURED COLD AT 27-01, in the same sitting as 'purge_file_floor' and by running the command
@@ -8507,7 +8535,7 @@ credential_scan root =
 -- unchanged at 10 and the only new files are one @.hs@ and one @.sh@, which both scans see. The
 -- two commands were still run separately.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 79
 --
 -- RE-MEASURED COLD AT 27-02 TASK 1, in the same sitting as 'purge_file_floor' and by running the
@@ -8516,7 +8544,7 @@ credential_scan root =
 -- floors move together by one; they part company again at 27-02 task 3, which commits a @.json@
 -- this scan reads and the purge does not.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 80
 --
 -- RE-MEASURED COLD AT 27-02 TASK 3, in the same sitting as 'purge_file_floor' and by RUNNING the
@@ -8525,33 +8553,33 @@ credential_scan root =
 -- executable, the capture script, and @chain-read-conformance.json@ -- against two the purge reads,
 -- so the pair parts company by one exactly as task 1 said it would. Both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 83
 --
 -- RE-MEASURED COLD AT 28-01, in the same sitting as 'purge_file_floor' and by RUNNING the command
 -- rather than by adding three to the 83 above it: 86 against exactly 86, zero slack. Census under
--- @offchain\/@ at that measurement: @hs 59, sh 12, json 11, sql 4@. The pair moves by the SAME
+-- this tree at that measurement: @hs 59, sh 12, json 11, sql 4@. The pair moves by the SAME
 -- three here, and that is a measurement rather than an assumption: this plan adds two @.hs@ and one
 -- @.sql@, and it RE-TAKES @store-conformance.json@ instead of creating an artifact, so the @.json@
 -- census does not move at all. Both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 86
 -- RE-MEASURED COLD AT 28-02, in the same sitting as 'purge_file_floor' and by RUNNING the command
 -- rather than by adding six to the 86 above it: 92 against exactly 92, zero slack. Census under
--- @offchain\/@ at that measurement: @hs 65, sh 12, json 11, sql 4@. Both floors move by the SAME
+-- this tree at that measurement: @hs 65, sh 12, json 11, sql 4@. Both floors move by the SAME
 -- six here -- all of them @.hs@ -- because this plan commits no artifact and no script, so neither
 -- the @.json@ nor the @.sh@ census moves. Both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 92
 -- RE-MEASURED COLD AT 28-03, in the same sitting as 'purge_file_floor' and by RUNNING the command
 -- rather than by adding one to the 92 above it: 93 against exactly 93, zero slack. Census under
--- @offchain\/@ at that measurement: @hs 66, sh 12, json 11, sql 4@. Both floors move by the SAME
--- one here -- @offchain\/lib\/Loop\/Publish.hs@ -- because this plan commits no artifact and no
+-- this tree at that measurement: @hs 66, sh 12, json 11, sql 4@. Both floors move by the SAME
+-- one here -- @lib\/Loop\/Publish.hs@ -- because this plan commits no artifact and no
 -- script. Both ends were RUN.
 --
--- > find offchain \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
+-- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 93
 credential_scan_floor :: Int
 credential_scan_floor = 96
@@ -8588,7 +8616,7 @@ credential_positive_control = do
   flip finally (mapM_ discard [bait, innocent]) $ do
     writeFile bait credential_bait_source
     writeFile innocent credential_innocent_source
-    (code, out, err) <- credential_scan dir
+    (code, out, err) <- credential_scan [dir]
     pure $ do
       _ <- expect (code == ExitSuccess)
              ("DB-02's POSITIVE CONTROL did not fire: grep exited " ++ show code ++ " over a tree"
@@ -8617,8 +8645,8 @@ no_credential_is_present_in_a_tracked_file :: Check
 no_credential_is_present_in_a_tracked_file =
   Check "no_credential_is_present_in_a_tracked_file" . guarded $ do
     control <- credential_positive_control
-    files   <- walk_files "offchain"
-    (code, out, err) <- credential_scan "offchain"
+    files   <- concat <$> mapM walk_files repo_roots
+    (code, out, err) <- credential_scan repo_roots
     let scanned = filter ((`elem` credential_scanned_extensions) . takeExtension) files
     pure $ do
       _ <- control
@@ -8632,7 +8660,7 @@ no_credential_is_present_in_a_tracked_file =
         ExitFailure 1 -> Right ()
         ExitFailure n -> Left ("grep itself failed with exit " ++ show n ++ ": " ++ err)
         ExitSuccess ->
-          Left ("a credential is written down in a tracked file under offchain/. DB-02 says the"
+          Left ("a credential is written down in a tracked file under this tree. DB-02 says the"
                  ++ " connection configuration comes from the environment, and Store.Config's"
                  ++ " default DSN is the EMPTY STRING for exactly this reason -- there is nothing"
                  ++ " to leak and nothing to go stale:\n"
@@ -8700,7 +8728,7 @@ one_aeson_vector (input, expected) =
 
 -- | THE STORAGE PATH, NAMED FILE BY FILE.
 --
--- Every module under @offchain\/lib\/Store\/@ is here, INCLUDING the one that does not exist yet.
+-- Every module under @lib\/Store\/@ is here, INCLUDING the one that does not exist yet.
 -- The list is written out rather than derived by globbing the directory, because a derived list
 -- grows silently: a new storage module would be scanned and nobody would have decided that it
 -- should be, and the day one is added to a different directory the glob would report a clean scan
@@ -8716,7 +8744,7 @@ one_aeson_vector (input, expected) =
 -- landed in 23-03 task 1 and spent two commits unlisted -- a storage module this scan did not read,
 -- caught by the plan's own self-check rather than by anything that fails. That is the other half of
 -- the trade: a glob would have picked it up and a named list has to be edited. The rule is the same
--- rule 23-02 wrote down and 23-03 then broke -- a new module under @offchain\/lib\/Store\/@ is added
+-- rule 23-02 wrote down and 23-03 then broke -- a new module under @lib\/Store\/@ is added
 -- HERE, in the commit that creates it -- and it now has an instance to its name.
 --
 -- 24-02 EXTENDED THE LIST TO THE WHOLE GAMS LAYER, AND THEN STOPPED RELYING ON THE RULE.
@@ -8724,14 +8752,14 @@ one_aeson_vector (input, expected) =
 -- it was added in the SAME COMMIT that created it. The other five went in with it, because a scan
 -- scoped to \"the modules that obviously need it\" is the same judgement call that left
 -- @Store\/Schema.hs@ out. And 'the_artifact_path_scan_covers_every_module_on_it' now asserts this
--- list against @offchain\/lib\/{Store,Gams}\/@ in BOTH directions, so the rule above no longer
+-- list against @lib\/{Store,Gams}\/@ in BOTH directions, so the rule above no longer
 -- depends on anyone remembering it.
 --
 -- 26-01 EXTENDED IT AGAIN, TO THE FEE SPLITTER, IN THE COMMIT THAT CREATED THE MODULE.
 -- @Fee\/Split.hs@ is on the artifact path in the strictest sense available: it decides the two fee
 -- fields that reach the argv, and ROADMAP SC-1 rules that the DERIVED PIPS are what reach the key.
 -- A 53-bit floating value there would move a pip count, and a pip count is a key component. It
--- went in here in the same commit as the file, and @offchain\/lib\/Fee@ went into
+-- went in here in the same commit as the file, and @lib\/Fee@ went into
 -- 'artifact_path_directories' in that same commit, because adding one without the other makes
 -- 'the_artifact_path_scan_covers_every_module_on_it' red in its OTHER direction -- a listed file
 -- under no scanned directory is a phantom.
@@ -8739,7 +8767,7 @@ one_aeson_vector (input, expected) =
 -- 26-02 EXTENDED IT AGAIN, TO THE SHOCK DECODER, IN THE COMMIT THAT CREATED THE MODULE.
 -- @Chain\/Shock.hs@ decodes @txlVolmNormRate@, and that ONE field is what becomes the prover's
 -- @txlVolumeRate@ argv token and therefore a key component. A 53-bit floating value anywhere on
--- that path would move a pip count. @offchain\/lib\/Chain@ went into 'artifact_path_directories'
+-- that path would move a pip count. @lib\/Chain@ went into 'artifact_path_directories'
 -- in the same commit, for the same both-directions reason 26-01 records above.
 --
 -- 27-01 ADDED @Chain\/Endpoint.hs@ IN THE COMMIT THAT CREATED IT, and it is the first member whose
@@ -8753,23 +8781,23 @@ one_aeson_vector (input, expected) =
 -- lands, so it is scanned.
 aeson_storage_path :: [FilePath]
 aeson_storage_path =
-  [ "offchain/lib/Chain/Endpoint.hs"
-  , "offchain/lib/Chain/Read.hs"
-  , "offchain/lib/Chain/Shock.hs"
-  , "offchain/lib/Fee/Split.hs"
-  , "offchain/lib/Gams/Argv.hs"
-  , "offchain/lib/Gams/Artifact.hs"
-  , "offchain/lib/Gams/Config.hs"
-  , "offchain/lib/Gams/Detect.hs"
-  , "offchain/lib/Gams/Env.hs"
-  , "offchain/lib/Gams/Exit.hs"
-  , "offchain/lib/Gams/Invoke.hs"
-  , "offchain/lib/Gams/Run.hs"
-  , "offchain/lib/Gams/Version.hs"
-  , "offchain/lib/Loop/Chain.hs"
-  , "offchain/lib/Loop/Config.hs"
-  , "offchain/lib/Loop/Ledger.hs"
-  , "offchain/lib/Loop/Poll.hs"
+  [ "lib/Chain/Endpoint.hs"
+  , "lib/Chain/Read.hs"
+  , "lib/Chain/Shock.hs"
+  , "lib/Fee/Split.hs"
+  , "lib/Gams/Argv.hs"
+  , "lib/Gams/Artifact.hs"
+  , "lib/Gams/Config.hs"
+  , "lib/Gams/Detect.hs"
+  , "lib/Gams/Env.hs"
+  , "lib/Gams/Exit.hs"
+  , "lib/Gams/Invoke.hs"
+  , "lib/Gams/Run.hs"
+  , "lib/Gams/Version.hs"
+  , "lib/Loop/Chain.hs"
+  , "lib/Loop/Config.hs"
+  , "lib/Loop/Ledger.hs"
+  , "lib/Loop/Poll.hs"
   -- 28-03. THE MODULE THAT CARRIES THE ARTIFACT'S BYTES OUT OF THIS WORKSTREAM, listed in the
   -- commit that created it. It is on the artifact path in the most literal sense in this list:
   -- every byte the prover wrote passes through 'Loop.Publish.splice_identity' on its way to a file
@@ -8778,20 +8806,20 @@ aeson_storage_path =
   -- value moving by 32 wei through a carrier that re-renders it -- so a JSON library appearing here
   -- would be exactly the defect this scan was built for, arriving at the last point where it could
   -- still do damage.
-  , "offchain/lib/Loop/Publish.hs"
-  , "offchain/lib/Loop/Run.hs"
-  , "offchain/lib/Loop/Solve.hs"
-  , "offchain/lib/Store/Cache.hs"
-  , "offchain/lib/Store/Class.hs"
-  , "offchain/lib/Store/Config.hs"
-  , "offchain/lib/Store/Json.hs"
-  , "offchain/lib/Store/Key.hs"
-  , "offchain/lib/Store/Laws.hs"
-  , "offchain/lib/Store/Memory.hs"
-  , "offchain/lib/Store/Postgres.hs"
-  , "offchain/lib/Store/Schema.hs"
-  , "offchain/lib/Store/Solver.hs"
-  , "offchain/lib/Store/Types.hs"
+  , "lib/Loop/Publish.hs"
+  , "lib/Loop/Run.hs"
+  , "lib/Loop/Solve.hs"
+  , "lib/Store/Cache.hs"
+  , "lib/Store/Class.hs"
+  , "lib/Store/Config.hs"
+  , "lib/Store/Json.hs"
+  , "lib/Store/Key.hs"
+  , "lib/Store/Laws.hs"
+  , "lib/Store/Memory.hs"
+  , "lib/Store/Postgres.hs"
+  , "lib/Store/Schema.hs"
+  , "lib/Store/Solver.hs"
+  , "lib/Store/Types.hs"
   ]
 
 aeson_pattern :: String
@@ -8805,7 +8833,7 @@ aeson_scan paths = readProcessWithExitCode "grep" (["-nHE", aeson_pattern] ++ pa
 
 -- | The seeded bait, BUILT rather than written out, for the reason 'purge_control_literal' is
 -- built: a file that spelled the import would be found by the very scan it exists to exercise, and
--- @offchain\/test\/Main.hs@ is not in 'aeson_storage_path' today but a future storage module in
+-- @test\/Main.hs@ is not in 'aeson_storage_path' today but a future storage module in
 -- this file would be.
 aeson_bait_source :: String
 aeson_bait_source =
@@ -8852,7 +8880,7 @@ aeson_positive_control = do
 -- matching a seeded bait; (2) every file in 'aeson_storage_path' EXISTS; (3) the scan finds
 -- nothing.
 --
--- (2) IS CURRENTLY RED, ON PURPOSE. @offchain\/lib\/Store\/Postgres.hs@ is created by plan 23-03
+-- (2) IS CURRENTLY RED, ON PURPOSE. @lib\/Store\/Postgres.hs@ is created by plan 23-03
 -- and does not exist at 23-02, so this check FAILS naming it. The alternative -- scoping the list
 -- to the files that happen to exist -- would make the check pass BECAUSE its subject is absent,
 -- which is the single defect class this project's review history is dominated by, found seven
@@ -8868,7 +8896,7 @@ aeson_is_absent_from_the_storage_path =
         _ <- control
         expect False
           ("the storage path names files that are not on disk: " ++ intercalate ", " gone
-            ++ ". offchain/lib/Store/Postgres.hs is created by PLAN 23-03 and this check is"
+            ++ ". lib/Store/Postgres.hs is created by PLAN 23-03 and this check is"
             ++ " DELIBERATELY RED until it lands. Scoping the list to the files that exist would"
             ++ " make this check pass because its subject is absent, which is the defect class"
             ++ " this milestone's standing rule names. If a file was RENAMED, rename it here in"
@@ -8997,25 +9025,25 @@ gams_version_parser_rejects_the_garbage_battery =
 -- 'Gams.Config' is deliberately NOT here and it is exempt WITH A REASON, below -- not omitted.
 gams_no_fallback_path :: [FilePath]
 gams_no_fallback_path =
-  [ "offchain/lib/Gams/Argv.hs"
-  , "offchain/lib/Gams/Artifact.hs"
+  [ "lib/Gams/Argv.hs"
+  , "lib/Gams/Artifact.hs"
   -- 28-02. S1's probe is on the identity path and therefore on the no-fallback path: every
   -- failure in it is a DetectError naming what was read, and the one retry it does perform asks
   -- for a DIFFERENT directory name rather than reusing a taken one or continuing without a
   -- directory.
-  , "offchain/lib/Gams/Detect.hs"
-  , "offchain/lib/Gams/Env.hs"
-  , "offchain/lib/Gams/Exit.hs"
-  , "offchain/lib/Gams/Invoke.hs"
-  , "offchain/lib/Gams/Run.hs"
-  , "offchain/lib/Gams/Version.hs"
+  , "lib/Gams/Detect.hs"
+  , "lib/Gams/Env.hs"
+  , "lib/Gams/Exit.hs"
+  , "lib/Gams/Invoke.hs"
+  , "lib/Gams/Run.hs"
+  , "lib/Gams/Version.hs"
   ]
 
 -- | Exemptions, each with the reason it is one. An exemption without a reason is how a scan's
 -- scope shrinks to the empty set one plausible file at a time.
 gams_fallback_exempt :: [(FilePath, String)]
 gams_fallback_exempt =
-  [ ( "offchain/lib/Gams/Config.hs"
+  [ ( "lib/Gams/Config.hs"
     , "the Store.Config idiom's `fromMaybe <default> <$> lookupEnv <name>` IS the resolver here,"
         ++ " and no version value exists on that path -- the defaults it supplies are an"
         ++ " executable name and two file paths, every one of which fails LOUDLY downstream when"
@@ -9028,7 +9056,7 @@ gams_fallback_exempt =
 -- in agreement, and the day they stopped agreeing one of the two guards would be reading a set
 -- nobody checked.
 gams_layer_modules :: IO [FilePath]
-gams_layer_modules = modules_under "offchain/lib/Gams"
+gams_layer_modules = modules_under "lib/Gams"
 
 -- | No fallback, no alternative, no exception handler, no placeholder string.
 gams_version_fallback_pattern :: String
@@ -9048,7 +9076,7 @@ gams_version_scan pattern paths = readProcessWithExitCode "grep" (["-nHE", patte
 --
 -- Note what this means for scope: this file HOLDS the patterns, so it matches them, so it can
 -- never be a member of the scanned set. That is exactly why the scanned set is the GAMS LIBRARY
--- directory and why the membership assertion below is over that directory and not over @offchain@.
+-- directory and why the membership assertion below is over that directory and not over this tree.
 gams_version_bait_source :: String
 gams_version_bait_source =
   "module Bait (GamsVersion " ++ "(..)) where\n"
@@ -9131,7 +9159,7 @@ gams_version_is_not_constructible_empty =
               ++ (if null phantom then ""
                     else "\n      scanned or exempt but not on disk: "
                            ++ intercalate ", " phantom)
-              ++ "\n      A new module under offchain/lib/Gams/ is added to"
+              ++ "\n      A new module under lib/Gams/ is added to"
               ++ " gams_no_fallback_path -- or to gams_fallback_exempt WITH A WRITTEN REASON --"
               ++ " in the commit that creates it. 23-03 measured what happens otherwise:"
               ++ " Store/Schema.hs spent two commits unlisted and nothing reddened.")
@@ -9329,7 +9357,7 @@ timeout_codes_do_not_collide_with_gams_codes =
 -- | The shock the committed golden artifact was produced FROM, MEASURED on 2026-08-16.
 --
 -- It is a fixture rather than an invention: the same seven values, rendered by 'render_argv' and
--- handed to the real prover, produced @offchain\/rig\/volume-path-golden.json@ at sha256
+-- handed to the real prover, produced @rig\/volume-path-golden.json@ at sha256
 -- e7b14f38..07d0d884. So the token list below is not a transcription of what the renderer happens
 -- to do -- it is the command line that produced bytes this repository has on disk.
 fixture_shock :: Shock
@@ -9658,7 +9686,7 @@ the_artifact_decoder_refuses_a_non_integer_token =
 -- ---------------------------------------------------------------------------------------------
 
 volume_path_golden_file :: FilePath
-volume_path_golden_file = "offchain/rig/volume-path-golden.json"
+volume_path_golden_file = "rig/volume-path-golden.json"
 
 -- | @dQx@ from the committed artifact, EXACT. Pinned here so the decoder is compared against a
 -- value it did not produce; tied to the file by the digest asserted before any decode.
@@ -9822,14 +9850,14 @@ every_golden_element_is_inexact_under_double =
 -- shrunk in the same commit.
 byte04_named_modules :: [FilePath]
 byte04_named_modules =
-  [ "offchain/lib/Gams/Argv.hs"
-  , "offchain/lib/Gams/Artifact.hs"
+  [ "lib/Gams/Argv.hs"
+  , "lib/Gams/Artifact.hs"
   ]
 
 -- | THE SAME SET THE AESON SCAN READS, AND THAT IS THE POINT.
 --
 -- The first draft of this scan listed two files. MEASURED at 24-02, before it shipped: every @.hs@
--- under @offchain\/lib\/{Store,Gams}\/@ is already free of the pattern, so covering two of them
+-- under @lib\/{Store,Gams}\/@ is already free of the pattern, so covering two of them
 -- cost thirteen files of coverage and bought nothing -- and it left the float scan with a
 -- hardcoded list and NO growth guard, which is the very defect
 -- 'the_artifact_path_scan_covers_every_module_on_it' exists to close, reproduced inside the commit
@@ -9933,22 +9961,22 @@ no_Double_and_no_aeson_on_the_artifact_path =
 
 -- | The directories whose every @.hs@ file must be a DECIDED member of the aeson scan.
 --
--- @offchain\/lib\/Fee@ joined at 26-01, in the commit that created the one module under it. There
+-- @lib\/Fee@ joined at 26-01, in the commit that created the one module under it. There
 -- is deliberately NO entry here for a directory that does not exist yet: this check fails LOUDLY
 -- on an absent directory, by design, because an enumeration of a directory that is not there is
 -- empty and an empty enumeration agrees with every list. A later plan that creates a module under
 -- a new directory adds the directory in ITS commit.
--- @offchain\/lib\/Chain@ joined at 26-02, in the commit that created the one module under it, for
+-- @lib\/Chain@ joined at 26-02, in the commit that created the one module under it, for
 -- the same reason and under the same rule.
 artifact_path_directories :: [FilePath]
 artifact_path_directories =
-  [ "offchain/lib/Chain", "offchain/lib/Fee", "offchain/lib/Gams", "offchain/lib/Loop"
-  , "offchain/lib/Store" ]
+  [ "lib/Chain", "lib/Fee", "lib/Gams", "lib/Loop"
+  , "lib/Store" ]
 
 -- | Modules under those directories that are deliberately NOT scanned, each with its reason.
 --
 -- EMPTY at 24-02, and that is a fact rather than a placeholder: every module under
--- @offchain\/lib\/{Store,Gams}\/@ is scanned today. An entry added here must carry the reason it
+-- @lib\/{Store,Gams}\/@ is scanned today. An entry added here must carry the reason it
 -- is one, because an exemption without a reason is how a scan's scope shrinks to the empty set one
 -- plausible file at a time.
 aeson_scan_exemptions :: [(FilePath, String)]
@@ -10004,7 +10032,7 @@ the_artifact_path_scan_covers_every_module_on_it =
                            ++ intercalate ", " unlisted)
               ++ (if null phantom then ""
                     else "\n      scanned or exempt but not on disk: " ++ intercalate ", " phantom)
-              ++ "\n      A new module under offchain/lib/{Store,Gams}/ is added to"
+              ++ "\n      A new module under lib/{Store,Gams}/ is added to"
               ++ " aeson_storage_path -- or to aeson_scan_exemptions WITH A WRITTEN REASON -- in"
               ++ " the commit that creates it. A missing file is a FAILURE naming the plan that"
               ++ " creates it, never a pass. 23-03 MEASURED the other half: Store/Schema.hs spent"
@@ -10046,7 +10074,7 @@ tier_b_shock = Shock
 -- | Writes an executable @\/bin\/sh@ script into a scratch directory and returns its ABSOLUTE path.
 --
 -- Stubs are BUILT, never committed, for the reason 'aeson_bait_source' and 'purge_control_literal'
--- are built: a committed stub would spell a GAMS version banner inside @offchain\/@, where the
+-- are built: a committed stub would spell a GAMS version banner inside this tree, where the
 -- scans that exist to find exactly that would find it. Building it keeps the bait inside the check
 -- that needs it and outside every scan's scope.
 --
@@ -11017,7 +11045,7 @@ gams_stream_pattern = "isInfixOf|infeasible|optimal|Locally|Normal completion|St
 -- because the GAMS-free pattern is anchored on the DOTTED module form -- composes the two with a
 -- resolved binary and a resolved model. Note what that means for scope:
 -- THIS file holds the pattern, so it matches it, so it can never be a member of this set -- which
--- is why the set is library modules and not @offchain@.
+-- is why the set is library modules and not this tree.
 --
 -- 24-03 LEFT THIS LIST WITHOUT A GROWTH GUARD ON PURPOSE AND SAID SO, and its carry-forward named
 -- the condition that ends the exemption: /\"the day a third such module lands, that list must
@@ -11027,9 +11055,9 @@ gams_stream_pattern = "isInfixOf|infeasible|optimal|Locally|Normal completion|St
 -- phase found without a growth guard and the third one to get one.
 gams_verdict_path :: [FilePath]
 gams_verdict_path =
-  [ "offchain/lib/Gams/Exit.hs"
-  , "offchain/lib/Gams/Invoke.hs"
-  , "offchain/lib/Gams/Run.hs"
+  [ "lib/Gams/Exit.hs"
+  , "lib/Gams/Invoke.hs"
+  , "lib/Gams/Run.hs"
   ]
 
 -- | The GAMS-layer modules that decide NOTHING, each with the reason it is one.
@@ -11041,24 +11069,24 @@ gams_verdict_path =
 -- guard is a per-module DECISION and not a widening of the scan.
 gams_verdict_exempt :: [(FilePath, String)]
 gams_verdict_exempt =
-  [ ( "offchain/lib/Gams/Argv.hs"
+  [ ( "lib/Gams/Argv.hs"
     , "a pure renderer with no IO at all: its only argument is a Shock and it has no stream to"
         ++ " read. It carries the model-status adjective, and that is the point -- the word appears"
         ++ " there as VOLUME_PATH.md section 1.2's own term for a fact known from the INPUT (equal"
         ++ " fees are infeasible for every target), in a refusal made before any process exists."
         ++ " Rewording it would cost fidelity to the spec to satisfy a pattern aimed at a different"
         ++ " thing entirely." )
-  , ( "offchain/lib/Gams/Artifact.hs"
+  , ( "lib/Gams/Artifact.hs"
     , "decides SHAPE, not outcome. It answers whether a byte buffer is a well-formed document with"
         ++ " matching array lengths; it never says whether the run succeeded, and the caller that"
         ++ " does treats a rejection here as one conjunct of six." )
-  , ( "offchain/lib/Gams/Config.hs"
+  , ( "lib/Gams/Config.hs"
     , "three environment-variable resolvers and their defaults. There is no run, no stream and no"
         ++ " outcome in this module for a verdict to be about." )
-  , ( "offchain/lib/Gams/Env.hs"
+  , ( "lib/Gams/Env.hs"
     , "the whitelist as DATA, plus a validator over a candidate environment. Its subject is what"
         ++ " goes IN to the child, decided before the spawn, and it sees no output of any kind." )
-  , ( "offchain/lib/Gams/Detect.hs"
+  , ( "lib/Gams/Detect.hs"
     , "S1's startup probe, and it is exempt for the SAME reason Gams/Version.hs is -- restated for"
         ++ " this module rather than copied without thought, because the two are not the same"
         ++ " module and an exemption reused without a reason is how this list stops being a list"
@@ -11068,7 +11096,7 @@ gams_verdict_exempt =
         ++ " verdict. It decides no outcome of any run: it either names the toolchain or returns a"
         ++ " DetectError, and the only judgement it makes about a process is on the EXIT STATUS,"
         ++ " which is the very thing this pattern exists to keep verdicts anchored to." )
-  , ( "offchain/lib/Gams/Version.hs"
+  , ( "lib/Gams/Version.hs"
     , "the BANNER PARSER, and it is exempt for a reason specific to this pattern rather than a"
         ++ " generic one: substring search is how a banner is legitimately read, so scanning this"
         ++ " module would forbid the parse instead of the verdict. A parse is not a verdict --"
@@ -11078,7 +11106,7 @@ gams_verdict_exempt =
 
 -- | THE GROWTH GUARD 24-03 SAID THIS LIST WOULD NEED.
 --
--- Both directions, against the directory. A module under @offchain\/lib\/Gams\/@ that is neither
+-- Both directions, against the directory. A module under @lib\/Gams\/@ that is neither
 -- scanned nor exempt is a failure NAMING it; a listed file with nothing on disk is a failure too,
 -- because a list scoped to the files that happen to exist passes over an empty set. Same shape as
 -- 'the_artifact_path_scan_covers_every_module_on_it', and 24-02 measured why that shape is worth
@@ -11094,7 +11122,7 @@ gams_verdict_scope_is_decided_module_by_module =
         thin     = [p | (p, why) <- gams_verdict_exempt, length why < 120]
     pure $ do
       _ <- expect (not (null on_disk))
-             ("no .hs file was found under offchain/lib/Gams. The set comparison below would then"
+             ("no .hs file was found under lib/Gams. The set comparison below would then"
                ++ " be an assertion about nothing, and the scan it governs would be scanning an"
                ++ " empty set while reporting the same exit 1 a clean scan reports.")
       _ <- expect (null thin)
@@ -11102,7 +11130,7 @@ gams_verdict_scope_is_decided_module_by_module =
                ++ ". An exemption without a defended reason is how a scan's scope shrinks to the"
                ++ " empty set one plausible file at a time.")
       expect (null unlisted && null phantom)
-        ("the modules on disk under offchain/lib/Gams are not the set the verdict scan decided"
+        ("the modules on disk under lib/Gams are not the set the verdict scan decided"
           ++ " about."
           ++ (if null unlisted then ""
                 else "\n      on disk but neither scanned nor exempt: " ++ intercalate ", " unlisted)
@@ -11190,7 +11218,7 @@ gams_verdict_ignores_the_streams =
 -- TIER C: the committed REAL-SOLVER evidence, made LOAD-BEARING
 --
 -- Plan 24-05 drove the real GAMS 54.1 / CONOPT 4.39 toolchain once, out of band, into
--- @offchain\/rig\/gams-conformance.json@. Tier A proves the pure functions are right and Tier B
+-- @rig\/gams-conformance.json@. Tier A proves the pure functions are right and Tier B
 -- proves the guards fire against stubs; ONLY the assertions below say the guards were aimed at the
 -- real thing. An artifact asserted by nothing is this repository's own issue #19, which is why
 -- these ten exist at all: the evidence is only evidence once something reddens when it changes.
@@ -11269,7 +11297,7 @@ gams_conformance_unrecomputable =
 
 -- | The two library modules whose digests the oracle recomputes from this repository's own disk.
 gams_freshness_subjects :: [FilePath]
-gams_freshness_subjects = ["offchain/lib/Gams/Argv.hs", "offchain/lib/Gams/Artifact.hs"]
+gams_freshness_subjects = ["lib/Gams/Argv.hs", "lib/Gams/Artifact.hs"]
 
 recompute_gams_module_digest :: FilePath -> IO (FilePath, Maybe String)
 recompute_gams_module_digest path = do
@@ -11888,7 +11916,7 @@ gams_conformance_verdicts_are_all_pass =
 -- Phase 28 / SPIKE SEAM S1: the startup identity, obtained without a production solve
 --
 -- Both checks below drive Gams.Detect. NEITHER invokes a solver: the pure one is fed the REAL
--- banner lines committed in offchain/rig/gams-conformance.json, and the IO one spawns a /bin/sh
+-- banner lines committed in rig/gams-conformance.json, and the IO one spawns a /bin/sh
 -- script it wrote moments earlier -- the same idiom every Tier-B check in this file is made of.
 -- ---------------------------------------------------------------------------------------------
 
@@ -11953,7 +11981,7 @@ detect_version_error (Right _) =
 -- | S1'S REFUSAL, WITH THE TOOL'S OWN WRONG-SUBJECT OUTPUT AS THE NEGATIVE CONTROL.
 --
 -- The two negatives are the REAL first lines the toolchain printed on 2026-08-17, read out of
--- @offchain\/rig\/gams-conformance.json@ rather than typed here -- @gams --version@ (exit 6, the
+-- @rig\/gams-conformance.json@ rather than typed here -- @gams --version@ (exit 6, the
 -- flag parsed as a filename) and @gams@ with no arguments (exit 0, 1239 bytes, the version string
 -- three times, no model run). Both are non-empty, correctly shaped and carry the true version. The
 -- only thing wrong with either is its SUBJECT, and the capture's own @parser_verdict@ strings say
@@ -12217,7 +12245,7 @@ gams_free_pattern =
 -- may name whatever it needs, and 24-05's executable will name all three. The DB-free twin this
 -- mirrors has the same scope for the same reason.
 gams_free_path :: FilePath
-gams_free_path = "offchain/test/Main.hs"
+gams_free_path = "test/Main.hs"
 
 -- | The seeded bait, BUILT for the reason the pattern is: all three tokens, in the three shapes
 -- they would actually appear in -- an import, an environment gate compared as a string, and an
@@ -13043,7 +13071,7 @@ reset_empties_the_store_and_is_scoped =
 -- | The file the solve path lives in. Named once, and READ rather than grepped, so the check
 -- carries no second process whose exit code has to be disentangled from its output.
 solve_path_source :: FilePath
-solve_path_source = "offchain/lib/Store/Cache.hs"
+solve_path_source = "lib/Store/Cache.hs"
 
 -- | Tokens that MUST be in 'solve_path_source', so the absence below is an absence.
 --
@@ -13579,7 +13607,7 @@ fee_float_bait_source =
 -- Three assertions and the order is the design. The POSITIVE CONTROL is first, because absence may
 -- not read as success until the pattern has been SHOWN matching -- and it must NAME the bait file,
 -- which is what @-H@ is for. The MEMBERSHIP arm is second: the scanned set must actually contain
--- @offchain\/lib\/Fee\/Split.hs@, so this check cannot pass by scanning a list the splitter was
+-- @lib\/Fee\/Split.hs@, so this check cannot pass by scanning a list the splitter was
 -- never added to. The scan itself is third.
 --
 -- WHY NO FLOATING VALUE IS PERMITTED HERE AT ALL, rather than a tolerance being chosen. The
@@ -13618,7 +13646,7 @@ no_floating_value_is_on_the_fee_path =
           ("FEE-02's POSITIVE CONTROL matched a file with no floating value in it, so the pattern"
             ++ " is matching something other than what it claims to. It said:\n"
             ++ unlines (map ("      " ++) (lines out)))
-    let splitter = "offchain/lib/Fee/Split.hs"
+    let splitter = "lib/Fee/Split.hs"
     if splitter `notElem` artifact_float_path
       then pure $ do
         _ <- control
@@ -13951,7 +13979,7 @@ shock_topic0_is_computed_from_the_signature_string pins =
           Left ("there is no Shock topic0 pin in " ++ pins_file_label ++ ". It is the second"
                  ++ " source this check compares the library's own recomputation against, and"
                  ++ " without it the arms below would be the suite agreeing with itself."
-                 ++ " Regenerate: bash offchain/rig/generate-pins.sh")
+                 ++ " Regenerate: bash rig/generate-pins.sh")
     let sig  = T.unpack (pin_signature entry)
         want = map toLower (T.unpack (pin_value entry))
     _ <- expect (sig == shock_signature)
@@ -14316,12 +14344,12 @@ argv_token_keys =
 -- | The scanned file for check 10's second arm. Named once so the arm cannot drift from the check
 -- that guards it.
 argv_module_path :: FilePath
-argv_module_path = "offchain/lib/Gams/Argv.hs"
+argv_module_path = "lib/Gams/Argv.hs"
 
 -- | The decay identifier, in either case. NOT built by concatenation, deliberately: the file this
 -- pattern lives in is not in the scanned set -- the scan is scoped to 'argv_module_path' alone --
 -- and building it would hide the one thing a reader of this arm needs to see. What IS load-bearing
--- is the scope: @offchain\/test\/Main.hs@ names the decay field constantly, and adding it to this
+-- is the scope: @test\/Main.hs@ names the decay field constantly, and adding it to this
 -- scan would redden it forever.
 argv_decay_pattern :: String
 argv_decay_pattern = "[Dd]ecay"
@@ -14555,7 +14583,7 @@ the_local_shocklib_emitter_matches_the_decoder =
           ++ " log into a WrongDataLength refusal.")
 
 -- | The pattern for check 12, BUILT rather than spelled for the reason 'purge_control_literal' is
--- built: three of its five alternations name things @offchain\/test\/Main.hs@ legitimately does,
+-- built: three of its five alternations name things @test\/Main.hs@ legitimately does,
 -- and a scope change that ever brought this file into the scanned set would then find the pattern
 -- in the sentence asserting its absence.
 chain_shock_io_pattern :: String
@@ -14574,7 +14602,7 @@ chain_shock_io_bait_source =
 
 -- | The decoder's own path, named once.
 chain_shock_path :: FilePath
-chain_shock_path = "offchain/lib/Chain/Shock.hs"
+chain_shock_path = "lib/Chain/Shock.hs"
 
 -- | CHAIN-04 check 12: the decoder holds no IO and no chain.
 --
@@ -15028,7 +15056,7 @@ splitter_io_bait_source =
 
 -- | The splitter's own path, named once.
 fee_splitter_path :: FilePath
-fee_splitter_path = "offchain/lib/Fee/Split.hs"
+fee_splitter_path = "lib/Fee/Split.hs"
 
 -- | FEE-04 check 17: the splitter holds no IO and names no process.
 --
@@ -15297,7 +15325,7 @@ the_admissible_band_has_more_than_one_member =
 -- ---------------------------------------------------------------------------------------------
 -- FEE-02 TIER C: THE DIFFERENTIAL AGAINST THE REAL PROVER
 --
--- Four checks over @offchain\/rig\/fee-split-conformance.json@, which is the ONLY place in this
+-- Four checks over @rig\/fee-split-conformance.json@, which is the ONLY place in this
 -- repository where GAMS is ever observed REFUSING something. Every other real-solver observation
 -- the suite makes -- the whole of @gams-conformance.json@ -- is about runs that worked.
 --
@@ -15846,8 +15874,8 @@ ungated_renderer_token = "render_argv" ++ "_ungated"
 -- it.
 expected_ungated_consumers :: [FilePath]
 expected_ungated_consumers =
-  [ "offchain/app/FeeSplitConformance.hs"
-  , "offchain/lib/Gams/Argv.hs"
+  [ "app/FeeSplitConformance.hs"
+  , "lib/Gams/Argv.hs"
   ]
 
 -- | CHECK 24 -- THE UNGATED RENDERER HAS EXACTLY ONE CONSUMER, ASSERTED IN BOTH DIRECTIONS.
@@ -15865,28 +15893,28 @@ expected_ungated_consumers =
 --
 -- == THIS FILE MAY NOT SPELL THE NAME, AND THAT IS NOT AN INCONVENIENCE
 --
--- The scan is over ALL of @offchain@ with no exclusion, including this file -- deliberately, because
+-- The scan is over ALL of this tree with no exclusion, including this file -- deliberately, because
 -- the suite calling the ungated renderer WOULD be a second consumer and excluding the scanner from
 -- its own scan is how a check stops being able to see the most likely violation. So the identifier
 -- is built at runtime in 'ungated_renderer_token' and never written out here, and the prose above
 -- says \"the ungated renderer\" rather than naming it. MEASURED: the first draft of this check
 -- carried the identifier in one haddock line -- a FIRING INPUT sentence -- and the scan returned
--- three files with @offchain\/test\/Main.hs@ reported as the SECOND CONSUMER. That is instance 25 of
+-- three files with @test\/Main.hs@ reported as the SECOND CONSUMER. That is instance 25 of
 -- prose inside a grep's blast radius on this branch; 24 was 26-02's @sed@ range and 23 was 26-01's
 -- @\\bsqrt\\b@.
 --
--- FIRING INPUT: add a call to the ungated renderer in @offchain\/app\/Main.hs@.
+-- FIRING INPUT: add a call to the ungated renderer in @app\/Main.hs@.
 the_ungated_renderer_has_exactly_one_consumer :: Check
 the_ungated_renderer_has_exactly_one_consumer =
   Check "the_ungated_renderer_has_exactly_one_consumer" . guarded $ do
     (code, out, err) <-
       readProcessWithExitCode "grep"
-        ["-rlF", "--include=*.hs", ungated_renderer_token, "offchain"] ""
+        (["-rlF", "--include=*.hs", ungated_renderer_token] ++ repo_roots) ""
     pure $ do
       _ <- case code of
              ExitSuccess   -> Right ()
              ExitFailure 1 ->
-               Left ("no file under offchain/ names " ++ ungated_renderer_token ++ " at all. grep"
+               Left ("no file under this tree names " ++ ungated_renderer_token ++ " at all. grep"
                       ++ " exits 1 for \"found nothing\" and for \"matched no files\" alike, and"
                       ++ " both mean the same thing here: the scan has no subject, so the set"
                       ++ " comparison below would be two empty lists agreeing.")
@@ -15911,7 +15939,7 @@ the_ungated_renderer_has_exactly_one_consumer =
 -- What was actually wrong is worth stating precisely, because it is not what CHAIN-06 describes.
 -- The requirement reads as though nine sites each implemented the rule and might drift. MEASURED
 -- at 27-01: the rule was implemented ZERO times. The only occurrence of the variable's name under
--- @offchain\/@ was a COMMENT in @deploy-rig.sh@ saying the deploy scripts scrub it. Nine files
+-- this tree was a COMMENT in @deploy-rig.sh@ saying the deploy scripts scrub it. Nine files
 -- wrote the authority out as a literal and read no environment, so the variable was accepted by
 -- every shell and honoured by nothing.
 -- ---------------------------------------------------------------------------------------------
@@ -15923,7 +15951,7 @@ the_ungated_renderer_has_exactly_one_consumer =
 -- was observed still answering after a failed teardown, and the endpoint it was polled on is part
 -- of what was typed. Redacting a measurement to satisfy a grep destroys evidence rather than
 -- closing a hole -- which is the ruling 'purge_known_extensions' already made, in those words, for
--- @offchain\/spec\/types.md@.
+-- @spec\/types.md@.
 --
 -- Restricting the hardcode scan to code is also the ANCHORED form of the question. What the check
 -- means is \"this file does not BIND its endpoint to a literal\", and a @#@ or @--@ line binds
@@ -15962,7 +15990,7 @@ lines_naming term = length . filter (term `isInfixOf`)
 -- assertion here while being the defect this module exists to remove, one file further in.
 --
 -- The 'Census' arm is the odd one and it is the point of that kind. This file must NAME the
--- resolver and must name NONE of 'chain_reaching_terms' -- @offchain\/rig\/README.md@'s standing
+-- resolver and must name NONE of 'chain_reaching_terms' -- @rig\/README.md@'s standing
 -- claim that @cabal test@ opens no socket, which was prose with a hand-run grep beside it until
 -- now. It is scanned WHOLE, comments included, because that claim is about the file and not about
 -- its executable lines.
@@ -16040,12 +16068,12 @@ every_endpoint_site_resolves_rather_than_hardcodes =
                      else [path ++ " does not name resolve_endpoint, so the third check below is"
                             ++ " not driving the real resolver."])
                ++ [path ++ " names " ++ show t ++ ", a way of REACHING a chain. Under the"
-                    ++ " three-tier decision cabal test opens no socket, and offchain/rig/README.md"
+                    ++ " three-tier decision cabal test opens no socket, and rig/README.md"
                     ++ " states that as a count of 0 over this file. A suite that can reach a chain"
                     ++ " turns its own verdict into a fact about one machine."
                   | t <- chain_reaching_terms, t `isInfixOf` body]
 
--- | The census scan: every file under @offchain\/@ that touches the endpoint by ANY route.
+-- | The census scan: every file under this tree that touches the endpoint by ANY route.
 --
 -- @-l@ so the subject is the FILE. @-F@ so the terms are fixed strings: the authority is full of
 -- dots, and an unescaped @.@ in a regular expression is a wildcard matching a host nobody wrote.
@@ -16060,14 +16088,14 @@ endpoint_census_scan :: IO (ExitCode, String, String)
 endpoint_census_scan =
   readProcessWithExitCode
     "grep"
-    (["-rlF"] ++ concat [["-e", t] | t <- endpoint_census_terms] ++ ["offchain"])
+    (["-rlF"] ++ concat [["-e", t] | t <- endpoint_census_terms] ++ repo_roots)
     ""
 
 -- | CHAIN-06's second half: THE CENSUS COUNTS WHAT IS ON DISK, IN BOTH DIRECTIONS.
 --
 -- This is what stops an eleventh site being added silently, and 27-01 is the plan that proves the
 -- shape is needed rather than assuming it -- because the eleventh site ALREADY EXISTED.
--- @offchain\/rig\/verify-rig.sh@ makes fourteen @cast@ calls against a live rig and CHAIN-06's
+-- @rig\/verify-rig.sh@ makes fourteen @cast@ calls against a live rig and CHAIN-06's
 -- list of nine does not contain it, because it reached the chain through foundry's ENDPOINT ALIAS
 -- -- the @local@ name that @foundry.toml@ resolves -- and so named neither the variable nor the
 -- authority. No pattern built from those two could ever have seen it. That is why
@@ -16079,7 +16107,7 @@ endpoint_census_scan =
 -- observes. It is one of 'chain_reaching_terms', this file is a 'Census' site, and the arm above
 -- scans this file WHOLE -- comments included. A sentence describing the flag by name would be
 -- reported as the suite reaching a chain. MEASURED at 27-01: the first draft of this paragraph
--- wrote the flag out and this check named offchain/test/Main.hs on the very next run. Instance 26
+-- wrote the flag out and this check named test/Main.hs on the very next run. Instance 26
 -- of prose inside a grep's blast radius on this branch, and the answer is the same as the other
 -- 25 -- move the prose, never relax the pattern.
 --
@@ -16105,7 +16133,7 @@ the_endpoint_site_census_grows_with_the_tree =
       _ <- case code of
              ExitSuccess   -> Right ()
              ExitFailure 1 ->
-               Left ("the census scan matched NO file under offchain/ at all. grep exits 1 for"
+               Left ("the census scan matched NO file under this tree at all. grep exits 1 for"
                       ++ " \"found nothing\" and for \"matched no files\" alike, and either way the"
                       ++ " set comparison below would be two lists agreeing about an empty tree."
                       ++ " The terms come from Chain.Endpoint; if they were renamed there, this is"
@@ -16125,7 +16153,7 @@ the_endpoint_site_census_grows_with_the_tree =
       _ <- expect (not (null found))
              "the census scan produced no filenames, so the comparison below is about nothing."
       expect (null unlisted && null phantom)
-        ("the files under offchain/ that touch the endpoint are not the set the manifest decided"
+        ("the files under this tree that touch the endpoint are not the set the manifest decided"
           ++ " about."
           ++ (if null unlisted then ""
                 else "\n      ON DISK, NOT IN THE MANIFEST: " ++ intercalate ", " unlisted
@@ -16388,7 +16416,7 @@ the_producer_and_the_consumers_bind_one_endpoint =
 -- ---------------------------------------------------------------------------------------------
 
 chain_read_path :: FilePath
-chain_read_path = "offchain/lib/Chain/Read.hs"
+chain_read_path = "lib/Chain/Read.hs"
 
 -- | The type whose presence in a read's signature IS the pin.
 block_ref_token :: String
@@ -16776,7 +16804,7 @@ chain_free_pattern =
 -- 'Chain.Read' cannot read a chain without it -- and so must the capture executable. The claim is
 -- about the TEST BINARY, which is the thing that runs on a contributor's machine with no rig.
 chain_free_path :: FilePath
-chain_free_path = "offchain/test/Main.hs"
+chain_free_path = "test/Main.hs"
 
 -- | The seeded bait: all three tokens in the three shapes they would actually appear in.
 chain_free_bait_source :: String
@@ -16892,7 +16920,7 @@ the_suite_never_reaches_a_chain =
                      ++ " turns every contributor's first run into a hunt for an anvil. CHAIN-02's"
                      ++ " observational evidence belongs in the committed artifact"
                      ++ " chain-read-conformance.json, produced out of band by"
-                     ++ " offchain/rig/capture-chain-read.sh, and asserted over here offline."
+                     ++ " rig/capture-chain-read.sh, and asserted over here offline."
                      ++ " A comment is inside this scan's blast radius too.")
 
 -- | A 32-byte word as the @0x@ token a transport would hand back.
@@ -17602,8 +17630,8 @@ a_block_number_above_two_to_the_fifty_three_is_OBSERVED_losing_precision_as_a_nu
 
 -- | The migration this plan lands, and the module that writes to the tables it creates.
 loop_migration_path, loop_ledger_module :: FilePath
-loop_migration_path = "offchain/migrations/004_loop_ledger.sql"
-loop_ledger_module  = "offchain/lib/Loop/Ledger.hs"
+loop_migration_path = "migrations/004_loop_ledger.sql"
+loop_ledger_module  = "lib/Loop/Ledger.hs"
 
 -- | Two synthetic event positions that differ ONLY in their log index.
 --
@@ -19959,13 +19987,13 @@ the_default_fixture_path_is_the_consumers_own_constant =
 -- tautology against a tracked @.gitkeep@.
 
 live_loop_capture, live_loop_artifact :: FilePath
-live_loop_capture  = "offchain/rig/capture-loop.sh"
-live_loop_artifact = "offchain/rig/loop-conformance.json"
+live_loop_capture  = "rig/capture-loop.sh"
+live_loop_artifact = "rig/loop-conformance.json"
 
 -- | THE LIVE RUN IS OWED, AND ITS ABSENCE IS THE ASSERTION.
 --
 -- This check is written INVERTED on purpose and the inversion is the only interesting thing about
--- it. It passes while @offchain\/rig\/loop-conformance.json@ does NOT exist, and it fails on the day
+-- it. It passes while @rig\/loop-conformance.json@ does NOT exist, and it fails on the day
 -- it appears. Those two directions mean different things and the failure text says which:
 --
 --   * while it PASSES, the live end-to-end run is OWED and BLOCKED. The capture exists, is gated
@@ -19985,7 +20013,7 @@ live_loop_artifact = "offchain/rig/loop-conformance.json"
 -- resolves the endpoint through the shared resolver rather than stating one, and that its own
 -- refusal text names the two blocks by number.
 --
--- 27-02's gating precedent is the shape: resolve through @offchain\/rig\/endpoint.sh@, FAIL LOUDLY
+-- 27-02's gating precedent is the shape: resolve through @rig\/endpoint.sh@, FAIL LOUDLY
 -- AND BY NAME when nothing answers, never skip. 23-RESEARCH's ruling is why -- a capture gated on
 -- \"if the tool is present\" fails OPEN, so on every machine without the tool it reports success
 -- for the reason it exists to forbid.
@@ -19993,7 +20021,7 @@ live_loop_artifact = "offchain/rig/loop-conformance.json"
 -- | THE LIVE RUN IS OWED, AND ITS ABSENCE IS THE ASSERTION.
 --
 -- This check is written INVERTED on purpose and the inversion is the only interesting thing about
--- it. It passes while @offchain\/rig\/loop-conformance.json@ does NOT exist, and it fails on the day
+-- it. It passes while @rig\/loop-conformance.json@ does NOT exist, and it fails on the day
 -- it appears. Those two directions mean different things and the failure text says which:
 --
 --   * while it PASSES, the live end-to-end run is OWED and BLOCKED. The capture exists, is gated
@@ -20013,7 +20041,7 @@ live_loop_artifact = "offchain/rig/loop-conformance.json"
 -- resolves the endpoint through the shared resolver rather than stating one, and that its own
 -- refusal text names the two blocks by number.
 --
--- 27-02's gating precedent is the shape: resolve through @offchain\/rig\/endpoint.sh@, FAIL LOUDLY
+-- 27-02's gating precedent is the shape: resolve through @rig\/endpoint.sh@, FAIL LOUDLY
 -- AND BY NAME when nothing answers, never skip. 23-RESEARCH's ruling is why -- a capture gated on
 -- \"if the tool is present\" fails OPEN, so on every machine without the tool it reports success
 -- for the reason it exists to forbid.
@@ -20023,7 +20051,7 @@ live_loop_artifact = "offchain/rig/loop-conformance.json"
 -- artifact was ABSENT while the live run was owed and blocked, and its own text said what to do the
 -- day that stopped being true: REPLACE it with checks that READ the artifact, then retire it. On
 -- 2026-08-24 @capture-loop.sh@ ran against the rig's ShockWriter (PR #42), a live Postgres and
--- GAMS 54.1, and wrote @offchain\/rig\/loop-conformance.json@ with exit 0. Three defects stood
+-- GAMS 54.1, and wrote @rig\/loop-conformance.json@ with exit 0. Three defects stood
 -- between the first attempt and that run, each found by the run itself and each fixed in the same
 -- commit: the capture read the watermark before the loop had migrated a fresh database; the
 -- loop's volume target was a constant sized for the golden's liquidity (kappa 0.028 on the rig's
@@ -20040,8 +20068,8 @@ the_live_loop_capture_records_a_run_that_solved_and_published =
     there    <- doesFileExist live_loop_capture
     body     <- if there then readFile live_loop_capture else pure ""
     loaded   <- read_json_file live_loop_artifact
-                  ("run the live capture: bash offchain/rig/capture-loop.sh (needs a rig, a"
-                    ++ " database and the prover; see offchain/LOOP.md)")
+                  ("run the live capture: bash rig/capture-loop.sh (needs a rig, a"
+                    ++ " database and the prover; see LOOP.md)")
     published <- doesFileExist default_fixture_path
     fixture_bytes <- if published then BS.readFile default_fixture_path else pure BS.empty
     mf <- manifest_file
@@ -20105,7 +20133,7 @@ the_live_loop_capture_records_a_run_that_solved_and_published =
       recorded_emitter <- map toLower <$> (json_field "rig" artifact >>= json_field "emitter" >>= json_string)
       manifest_emitter <- manifest_address (rig_addrs rig) "ShockWriter"
       _ <- addresses_agree "ShockWriter" manifest_emitter "loop-conformance.json rig.emitter"
-             recorded_emitter "bash offchain/rig/capture-loop.sh"
+             recorded_emitter "bash rig/capture-loop.sh"
              "The live run was driven against a DIFFERENT emitter than the rig now holds."
       fx <- json_field "fixture" artifact
       fx_bytes <- json_field "bytes" fx >>= json_integer
@@ -20684,7 +20712,7 @@ core_checks = do
         Left err ->
           [ pure_check "sc4_pins_file_decodes" $
               Left ("could not read the pin file " ++ pf ++ ": " ++ err
-                     ++ "\n      regenerate it with: bash offchain/rig/generate-pins.sh")
+                     ++ "\n      regenerate it with: bash rig/generate-pins.sh")
           ]
         Right pins ->
           [ sc4_generated_from_is_the_imported_ref pins

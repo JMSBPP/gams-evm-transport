@@ -4,7 +4,7 @@
 #
 # It owns anvil (kills a stale listener on 8545, starts a fresh chain at a FIXED
 # genesis timestamp), runs the six deploy scripts, and writes
-# offchain/rig/rig-manifest.json.
+# rig/rig-manifest.json.
 #
 # Phase 22 / plan 22-03 added the SIXTH script, InitSwappableRig.s.sol: the pool is
 # SWAPPABLE on exit -- two routers, one full-range position, and a probe swap this
@@ -15,7 +15,7 @@
 # INDEPENDENTLY confirmed against the deploy script's own printed console line.
 # A disagreement is a hard failure, never a warning. No address, account or seed
 # value in this file was typed by hand or derived from nonce arithmetic -- that
-# is precisely how offchain/app/Sample.hs's literals went stale.
+# is precisely how app/Sample.hs's literals went stale.
 #
 # On success anvil is left RUNNING so the Haskell drivers can use the rig.
 # Use `deploy-rig.sh --stop` to tear it down.
@@ -48,10 +48,10 @@ cd "$(git rev-parse --show-toplevel)"
 # ETH_RPC_URL therefore fails the teardown, and that is the correct outcome rather than a
 # regression: a teardown that does not know which port it owns must not pick one.
 #
-# The resolver is SOURCED and never re-spelled. offchain/rig/endpoint.sh is the ONE place the shell
-# side states the default, and offchain/lib/Chain/Endpoint.hs is the ONE place the Haskell side
+# The resolver is SOURCED and never re-spelled. rig/endpoint.sh is the ONE place the shell
+# side states the default, and lib/Chain/Endpoint.hs is the ONE place the Haskell side
 # does; the suite asserts the two literals are byte-equal.
-. offchain/rig/endpoint.sh    # sets RPC_URL, RPC_HOST, RPC_PORT
+. rig/endpoint.sh    # sets RPC_URL, RPC_HOST, RPC_PORT
 LOG_DIR=/tmp/rig-logs
 
 # RIG_MANIFEST IS HONOURED HERE, exactly as every reader honours it: verify-rig.sh:23,
@@ -72,7 +72,7 @@ LOG_DIR=/tmp/rig-logs
 # variable mean one thing everywhere: "this path is the manifest I mean." Note what it
 # does NOT isolate: this script still owns anvil, still resets the chain, and still
 # rewrites broadcast/. Redirecting the manifest is not a dry run.
-MANIFEST="${RIG_MANIFEST:-offchain/rig/rig-manifest.json}"
+MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
 
 # --- Step 0: constants -----------------------------------------------------
 # These are FIXED LITERALS on purpose. SC-5 (two from-scratch runs produce a
@@ -230,14 +230,14 @@ fi
 # chain past the end of the workflow and the next job inherits it.
 #
 # MEASURED against the live rig, BEFORE this move (anvil answering, block 10):
-#   $ printf 'not-a-sha\n' > offchain/rig/import-ref.txt
-#   $ bash offchain/rig/deploy-rig.sh --stop
-#     FATAL: offchain/rig/import-ref.txt does not hold a 40-digit lowercase sha
+#   $ printf 'not-a-sha\n' > rig/import-ref.txt
+#   $ bash rig/deploy-rig.sh --stop
+#     FATAL: rig/import-ref.txt does not hold a 40-digit lowercase sha
 #     EXIT=1
 #   $ cast block-number --rpc-url http://127.0.0.1:8545   ->  10   (anvil STILL UP)
 #
-#   $ chmod a-w offchain/rig && bash offchain/rig/deploy-rig.sh --stop
-#     FATAL: cannot write the manifest to .../offchain/rig/rig-manifest.json
+#   $ chmod a-w rig && bash rig/deploy-rig.sh --stop
+#     FATAL: cannot write the manifest to .../rig/rig-manifest.json
 #     EXIT=1
 #   $ cast block-number --rpc-url http://127.0.0.1:8545   ->  10   (anvil STILL UP)
 #
@@ -249,16 +249,16 @@ fi
 # fails -- one step later than before, having killed a listener it was always going to
 # kill. Nothing that used to be caught is now missed; the gates simply no longer stand
 # between a teardown and the process it exists to kill.
-IMPORT_REF=$(tr -d ' \t\n\r' < offchain/rig/import-ref.txt)
+IMPORT_REF=$(tr -d ' \t\n\r' < rig/import-ref.txt)
 # The SHAPE of the anchor, not merely that the file was readable. An empty import-ref.txt
 # writes an empty generatedFrom into the manifest, and every downstream freshness check then
 # compares one empty string to another -- measured on the cheat-swap artifact, where that
 # comparison ("" == "") passed and the run exited 0.
 case "$IMPORT_REF" in
   [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
-  *) echo "FATAL: offchain/rig/import-ref.txt does not hold a 40-digit lowercase sha" >&2
+  *) echo "FATAL: rig/import-ref.txt does not hold a 40-digit lowercase sha" >&2
      echo "       (got '$IMPORT_REF'). The manifest's generatedFrom would carry it." >&2
-     echo "       Re-record the ref: bash offchain/rig/check-upstream.sh" >&2
+     echo "       Re-record the ref: bash rig/check-upstream.sh" >&2
      exit 1 ;;
 esac
 
@@ -278,7 +278,7 @@ MANIFEST_DIR=$(dirname "$MANIFEST")
 }
 if [ -n "${RIG_MANIFEST:-}" ]; then
   echo "note: RIG_MANIFEST is set -- writing the manifest to $(realpath -m "$MANIFEST")"
-  echo "      offchain/rig/rig-manifest.json will NOT be touched. anvil and broadcast/ still are."
+  echo "      rig/rig-manifest.json will NOT be touched. anvil and broadcast/ still are."
 fi
 
 # --- Step 1: kill any stale anvil, then start a fresh one ------------------
@@ -301,7 +301,7 @@ wait_for_port_release
 # nothing, and that is exactly why omitting them was survivable and wrong. They are what makes the
 # chain this script STARTS the chain every reader RESOLVES, for every value of the variable rather
 # than for the one value where the two happen to coincide. Both come from the same
-# offchain/rig/endpoint.sh parse that produced the URL passed to forge and cast above and below,
+# rig/endpoint.sh parse that produced the URL passed to forge and cast above and below,
 # so there is one reading of one variable and no arithmetic between the producer and the consumers.
 nohup anvil --silent --host "$RPC_HOST" --port "$RPC_PORT" --timestamp "$INIT_TS" \
   >"$LOG_DIR/anvil.log" 2>&1 &
@@ -651,7 +651,7 @@ PSPM=$(jq -r '[.transactions[] | select(.contractName=="PoolManager")][0].contra
 # Issue #38. PriceSetterHook's address is CREATE2-MINED over its initcode, and the initcode
 # carries solc's metadata hash -- so a change to ANY global compiler input (remappings.txt,
 # foundry.toml, the solc version, the contract's own source or even its comments) moves the
-# address while no offchain file changes. Recording the initcode's digest beside the address
+# address while no file under this tree changes. Recording the initcode's digest beside the address
 # is what lets a freshness check NAME that cause instead of reporting a bare "different
 # deployment". The digest is sha256 over the lowercase hex TEXT of the broadcast's creation
 # input (no 0x), so it needs nothing beyond jq + sha256sum and is reproducible by hand:

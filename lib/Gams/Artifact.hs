@@ -4,7 +4,7 @@
 --
 -- WHY THE 53-BIT PATH IS NOT AN OPTION
 -- ------------------------------------
--- COMPUTED from the committed @offchain\/rig\/volume-path-golden.json@ (606 bytes, sha256
+-- COMPUTED from the committed @rig\/volume-path-golden.json@ (606 bytes, sha256
 -- e7b14f38..07d0d884), by taking each array element through IEEE-754 binary64 and rounding back:
 --
 -- > dQx[0]  exact -2613128317657530400   binary64 -2613128317657530368   delta   32
@@ -20,7 +20,7 @@
 -- WHY THIS IS HAND-WRITTEN
 -- ------------------------
 -- 'Store.Json' is the precedent and the reason: BYTE-03's source scan asserts that no JSON library
--- sits on the storage path, every module under @offchain\/lib\/Store\/@ is named in that scan's
+-- sits on the storage path, every module under @lib\/Store\/@ is named in that scan's
 -- list, and this module is now on it too. A library that turned the document into its own value
 -- type would re-render every number on the way in, which is the failure the scan exists to
 -- prevent, moved one directory over. So the bytes are gated by 'Store.Json.recognise_json_value'

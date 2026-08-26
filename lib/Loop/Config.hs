@@ -316,7 +316,7 @@ exit_code_for_halt = coded . halt_name
 -- | The runbook NAME of a halt, exported so a caller can say which condition ended the run without
 -- keeping a second table of its own.
 --
--- @offchain\/app\/LoopMain.hs@ prints it on the final machine-readable line beside the code, and
+-- @app\/LoopMain.hs@ prints it on the final machine-readable line beside the code, and
 -- the code is 'exit_code_for_halt' of the same value -- so the line and the status byte cannot
 -- disagree about which condition they describe.
 halt_name :: Halt -> String

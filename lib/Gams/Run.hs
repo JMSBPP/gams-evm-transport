@@ -50,7 +50,7 @@
 -- 'Aborted' CARRIES NO ARTIFACT, AND THAT IS A CORRECTION OF RECORD
 -- -----------------------------------------------------------------
 -- The phase brief's SC-4 asks for an /aborted run-log row/. That is NOT deliverable in this phase:
--- the run-log table is STORE-07, which is Phase 25, and @offchain\/migrations\/@ contains only
+-- the run-log table is STORE-07, which is Phase 25, and @migrations\/@ contains only
 -- @001_model_run.sql@ and @002_byte_corpus.sql@ today. Restating it at the TYPE LEVEL is both
 -- stronger and deliverable here: 'Aborted' has no 'Gams.Artifact.ProverArtifact' field and this
 -- module exports no total @ProverOutcome -> ProverArtifact@ function, so \"an aborted run produces
@@ -172,7 +172,7 @@ data ToolchainIdentity = ToolchainIdentity
   , ti_gams_path      :: !FilePath
   , ti_gams_sha256    :: !String
     -- ^ BARE lowercase hex, no @0x@ prefix. A @0x@-prefixed 64-hex literal anywhere under
-    -- @offchain\/@ reddens @sc3_literal_purge@, and this value ends up in messages and artifacts.
+    -- this tree reddens @sc3_literal_purge@, and this value ends up in messages and artifacts.
   , ti_model_sources  :: ![(FilePath, String)]
     -- ^ sorted @(path, sha256)@. A LIST rather than one digest: @volume_path.gms@ has zero
     -- @$include@ directives today, so the list has one element, and the day it gains one the shape

@@ -2,8 +2,8 @@
 
 -- |
 -- THE CAPTURE. The one place in Phase 24 that needs a solver, and -- until the throwaway
--- end-to-end spike at @offchain\/app\/SpikeEndToEnd.hs@ joined it -- the only importer of
--- "Gams.Invoke". Both importers are under @offchain\/app\/@, which is the property that was ever
+-- end-to-end spike at @app\/SpikeEndToEnd.hs@ joined it -- the only importer of
+-- "Gams.Invoke". Both importers are under @app\/@, which is the property that was ever
 -- load-bearing; the count never was.
 --
 -- Nine of the phase's observations can only be made against the real GAMS 54.1 / CONOPT 4.39
@@ -40,11 +40,11 @@
 --
 -- == THE FRESHNESS ORACLE'S TWO HALVES
 --
--- @argv_module_sha256@ and @artifact_module_sha256@ are digests of @offchain\/lib\/Gams\/Argv.hs@ and
--- @offchain\/lib\/Gams\/Artifact.hs@ -- the renderer that decides the argv token and the decoder that
+-- @argv_module_sha256@ and @artifact_module_sha256@ are digests of @lib\/Gams\/Argv.hs@ and
+-- @lib\/Gams\/Artifact.hs@ -- the renderer that decides the argv token and the decoder that
 -- reads the bytes back. The suite RECOMPUTES both from this repository's own disk, so editing either
 -- one without re-capturing reddens. That mirrors 23-05's oracle, which recomputes migration digests
--- from @offchain\/migrations\/@.
+-- from @migrations\/@.
 --
 -- @model_sources@ is the half that CANNOT be recomputed offline: @volume_path.gms@ lives in the
 -- sibling GAMS worktree and is unreachable from this repository. It is recorded, asserted on SHAPE,
@@ -62,7 +62,7 @@
 --
 -- > gams-conformance <scratch-directory>
 --
--- The scratch directory is prepared by @offchain\/rig\/capture-gams-conformance.sh@ and carries the
+-- The scratch directory is prepared by @rig\/capture-gams-conformance.sh@ and carries the
 -- four probe models named in 'required_probe_models'. It is never inside the working tree and never
 -- inside @model\/@, which is another workstream's territory.
 module Main (main) where
@@ -125,16 +125,16 @@ import Store.Types (sha256_hex)
 -- before this capture existed, and the three environment runs are compared against it. The suite in
 -- turn compares this field against 'Store.Types.volume_path_golden_sha256', which is a third place.
 golden_path :: FilePath
-golden_path = "offchain/rig/volume-path-golden.json"
+golden_path = "rig/volume-path-golden.json"
 
 -- | The two library modules the freshness oracle recomputes.
 argv_module_path, artifact_module_path :: FilePath
-argv_module_path     = "offchain/lib/Gams/Argv.hs"
-artifact_module_path = "offchain/lib/Gams/Artifact.hs"
+argv_module_path     = "lib/Gams/Argv.hs"
+artifact_module_path = "lib/Gams/Artifact.hs"
 
 -- | THE GOLDEN ARTIFACT'S OWN INPUTS.
 --
--- These seven values are the shock that produced @offchain\/rig\/volume-path-golden.json@, read off
+-- These seven values are the shock that produced @rig\/volume-path-golden.json@, read off
 -- its echoed fields. @volTgtWad@ is not echoed into the output at all -- MEASURED, it is a GAMS
 -- @Scalar@ -- so it is the one field here that comes from the research transcript rather than from
 -- the file.
@@ -152,7 +152,7 @@ golden_shock = Shock
 -- | The four models the capture script writes into the scratch directory.
 --
 -- They are NOT written by this executable and they are NOT committed. Writing them here would mean
--- a @.gms@ body living inside @offchain\/@, where four scans read every Haskell file; writing them
+-- a @.gms@ body living inside this tree, where four scans read every Haskell file; writing them
 -- into the tree would mean a fifth file type to declare. The script owns them, this executable
 -- refuses to run without them, and the refusal NAMES the missing one.
 required_probe_models :: [FilePath]
@@ -213,7 +213,7 @@ main = do
     [scratch] -> capture scratch
     _         -> do
       hPutStrLn stderr "usage: gams-conformance <scratch-directory>"
-      hPutStrLn stderr "       the directory is prepared by offchain/rig/capture-gams-conformance.sh"
+      hPutStrLn stderr "       the directory is prepared by rig/capture-gams-conformance.sh"
       exitFailure
 
 -- | Fail loudly, naming the subject, and write NOTHING. A capture that continues past a missing
@@ -466,7 +466,7 @@ require_probe scratch name = do
     then pure ()
     else die [ "CAPTURE FAIL: the scratch directory has no " ++ name
              , "              (" ++ (scratch </> name) ++ ")"
-             , "              offchain/rig/capture-gams-conformance.sh writes the probe models."
+             , "              rig/capture-gams-conformance.sh writes the probe models."
              ]
 
 require_index :: String -> Maybe Int -> IO Int

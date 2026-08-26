@@ -1,6 +1,6 @@
 # `loop` — the resident VolumePath bridge: operator's manual
 
-**Location:** `offchain/LOOP.md` — next to the code it describes (`docs/` is gitignored on this branch).
+**Location:** `LOOP.md` — next to the code it describes (`docs/` is gitignored on this branch).
 **Milestone:** v6.0 (rpc_api workstream), Phases 23–28. **Status:** every component built and
 verified; the in-process composition proven chain-free; the live end-to-end run **has never
 executed** and says so (see §7).
@@ -29,7 +29,7 @@ A malformed value is **refused with a named exit**, never silently defaulted.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `ETH_RPC_URL` | `http://127.0.0.1:8545` | The one endpoint authority. `offchain/rig/endpoint.sh` states the same default for the shell scripts; the suite asserts the two byte-equal. |
+| `ETH_RPC_URL` | `http://127.0.0.1:8545` | The one endpoint authority. `rig/endpoint.sh` states the same default for the shell scripts; the suite asserts the two byte-equal. |
 | `PGSTORE_DSN` | *(empty — the loop will not start)* | **Required.** Store + ledger. The loop runs migrations `001`–`004` itself at startup. |
 | `FIXTURE_DIR` | `test/models/mev_tax_model_one/fixtures` (repo-relative; issue #25's contract) | Publication directory. The loop **never creates it** (LOOP-04). |
 | `LOOP_POLL_MS` | `1000` | Positive integer only. |
@@ -41,19 +41,19 @@ The prover child receives a **whitelisted** environment (`Gams.Env`): `GAMS*`, `
 
 ## 3. Standing up what it needs
 
-`offchain/rig/README.md`'s clean-machine sequence, from the repo root, each step exit 0:
+`rig/README.md`'s clean-machine sequence, from the repo root, each step exit 0:
 
 ```bash
 npm ci --ignore-scripts
 git -c submodule.lib/panoptic-helper.update=none submodule update --init --recursive
 forge build
-offchain/rig/check-upstream.sh && offchain/rig/verify-import.sh
-offchain/rig/deploy-rig.sh        # owns anvil; asserts `cast chain-id` BEFORE the first broadcast
-offchain/rig/verify-rig.sh
+rig/check-upstream.sh && rig/verify-import.sh
+rig/deploy-rig.sh        # owns anvil; asserts `cast chain-id` BEFORE the first broadcast
+rig/verify-rig.sh
 ```
 
 Plus a Postgres at `PGSTORE_DSN` (the conformance capture uses `postgres:18-alpine` via docker)
-and a GAMS 54.1 / CONOPT 4.39 toolchain. `offchain/rig/deploy-rig.sh --stop` kills the rig's anvil.
+and a GAMS 54.1 / CONOPT 4.39 toolchain. `rig/deploy-rig.sh --stop` kills the rig's anvil.
 
 ## 4. Startup, in order — each failure is a named exit code
 
@@ -109,8 +109,8 @@ boundary — block N lands fully, block N+1 never starts.
   against synthetic logs, `Store.Memory`, a stub solver and a temp `FIXTURE_DIR`, with each
   firing input observed red.
 - The real solver mated once: the spike (`e0b3600`) ran split → key → decide → GAMS → store on a
-  *constructed* shock and reproduced `offchain/rig/volume-path-golden.json` byte-for-byte.
-- `offchain/rig/capture-loop.sh` — the live end-to-end capture. **It has never run**, and refuses
+  *constructed* shock and reproduced `rig/volume-path-golden.json` byte-for-byte.
+- `rig/capture-loop.sh` — the live end-to-end capture. **It has never run**, and refuses
   by name:
   - **CHAIN-01 / issue #26** — no deployable `Shock` emitter exists; the event is emitted from
     inside a forge test, not a contract another process can drive. One driver emitting a single

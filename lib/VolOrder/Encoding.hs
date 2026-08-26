@@ -17,7 +17,7 @@ import VolOrder.Types (VolOrder (..))
 -- V2, four arguments. The V1 3-arg create_order path is DELETED, not kept alongside: nothing was
 -- ever deployed under its selector (rig-pins.json records it under `retired`), and a module that
 -- dispatches only the 4-arg selector answers a 3-arg call with a revert. Its signature string is
--- not repeated here either -- the phase's own verification greps offchain/ for it.
+-- not repeated here either -- the phase's own verification greps this tree for it.
 encode_create_order :: VolOrder -> IO HexString
 encode_create_order order =
   encode_call

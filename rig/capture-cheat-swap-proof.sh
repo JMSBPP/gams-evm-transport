@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # capture-cheat-swap-proof.sh -- execute the cheat-swap sequence against the
-# LIVE rig and record the result in offchain/rig/cheat-swap-proof.json.
+# LIVE rig and record the result in rig/cheat-swap-proof.json.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -25,8 +25,8 @@
 # This script is the one place that needs the chain.
 #
 # USAGE
-#   bash offchain/rig/deploy-rig.sh          # stands the rig up, leaves anvil running
-#   bash offchain/rig/capture-cheat-swap-proof.sh
+#   bash rig/deploy-rig.sh          # stands the rig up, leaves anvil running
+#   bash rig/capture-cheat-swap-proof.sh
 #
 # NOTE: this MUTATES the chain. It sends real swaps and advances the clock. It is
 # not idempotent against a fixed chain state, and it must not be run against a
@@ -35,19 +35,19 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-MANIFEST="${RIG_MANIFEST:-offchain/rig/rig-manifest.json}"
-IMPORT_REF=offchain/rig/import-ref.txt
-OUT=offchain/rig/cheat-swap-proof.json
+MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
+IMPORT_REF=rig/import-ref.txt
+OUT=rig/cheat-swap-proof.json
 # CHAIN-06. Was the authority as a literal; ETH_RPC_URL reached this script's environment and
-# nothing here read it. Sourced, never re-spelled -- offchain/rig/endpoint.sh states the default
+# nothing here read it. Sourced, never re-spelled -- rig/endpoint.sh states the default
 # once for the shell side.
-. offchain/rig/endpoint.sh
+. rig/endpoint.sh
 RPC="$RPC_URL"
 
 # --- Preconditions: fail loudly, never default -----------------------------
 if [ ! -f "$MANIFEST" ]; then
   echo "CAPTURE FAIL: no manifest at $(realpath -m "$MANIFEST")" >&2
-  echo "              stand the rig up first: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              stand the rig up first: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 if [ ! -f "$IMPORT_REF" ]; then
@@ -60,13 +60,13 @@ for key in PoolManager PriceSetterPoolManager DynamicFeeHook PriceSetterHook Poo
   if [ -z "$value" ]; then
     echo "CAPTURE FAIL: $(realpath -m "$MANIFEST") has no contracts.$key" >&2
     echo "              the InitSwappableRig step did not run, so the pool has NO liquidity" >&2
-    echo "              and no unlock-callback router. Re-run: bash offchain/rig/deploy-rig.sh" >&2
+    echo "              and no unlock-callback router. Re-run: bash rig/deploy-rig.sh" >&2
     exit 1
   fi
 done
 if ! cast block-number --rpc-url "$RPC" >/dev/null 2>&1; then
   echo "CAPTURE FAIL: nothing answered eth_blockNumber at $RPC" >&2
-  echo "              stand the rig up first: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              stand the rig up first: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 
@@ -77,7 +77,7 @@ fi
 # lines 77-78 ("a capture that silently wrote the wrong tick is worse than no capture"):
 # the failure mode it names leaves the operator with a bad artifact and no good one.
 #
-# The writer is offchain/app/CheatSwapProof.hs:78, which hardcodes the output path (by
+# The writer is app/CheatSwapProof.hs:78, which hardcodes the output path (by
 # design -- README.md:234-238: RIG_CHEAT_SWAP_PROOF redirects the CHECKS only). So the
 # preservation is done HERE, where the tracked file lives: the previous artifact is kept
 # beside the target and put BACK on any non-zero exit, including a SIGINT. On success it
@@ -128,7 +128,7 @@ fi
 # "Silent" here means the hook recorded ITS OWN pool's tick, NOT that it recorded
 # nothing. MEASURED: e3_count = 1, e3.tick = 4999 -- the swap still fires
 # beforeSwap and still writes a timepoint; what does not happen is the cheated
-# 7000 arriving from the other manager. offchain/test/Main.hs:2656 asserts the
+# 7000 arriving from the other manager. test/Main.hs:2656 asserts the
 # same e3_count == 1 over the committed artifact.
 #
 # The existence, the status and the E3 COUNT are therefore asserted BEFORE the
@@ -339,7 +339,7 @@ fi
 
 # --- Self-check 4: generatedFrom really is the imported ref ----------------
 # THE COMPARISON IS NOT ENOUGH ON ITS OWN. Agent B's degeneracy lesson, found live here:
-# with offchain/rig/import-ref.txt emptied, the capture wrote generatedFrom "" and this
+# with rig/import-ref.txt emptied, the capture wrote generatedFrom "" and this
 # check compared "" != "" -- false -- and PASSED. MEASURED: the run printed
 # "wrote ... (6 measurements, chainId 31337, ref )" with nothing after "ref", exit 0, and
 # the artifact's only provenance anchor was silently blank. Equality between two values is
@@ -352,7 +352,7 @@ case "$REF_ON_DISK" in
   *) echo "CAPTURE FAIL: $IMPORT_REF does not hold a 40-digit lowercase sha (got '$REF_ON_DISK')." >&2
      echo "              An empty or malformed anchor makes the generatedFrom comparison below" >&2
      echo "              degenerate -- '' == '' passes and the artifact records no provenance." >&2
-     echo "              Re-record the ref: bash offchain/rig/check-upstream.sh" >&2
+     echo "              Re-record the ref: bash rig/check-upstream.sh" >&2
      exit 1 ;;
 esac
 if [ "$REF_IN_FILE" != "$REF_ON_DISK" ]; then

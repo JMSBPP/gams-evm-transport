@@ -1,15 +1,15 @@
 -- | THE ONE PLACE THE CHAIN'S ADDRESS IS DECIDED.
 --
--- CHAIN-06 says "nine sites, one rule". MEASURED at 27-01, by @git grep@ over @offchain\/@ for
+-- CHAIN-06 says "nine sites, one rule". MEASURED at 27-01, by @git grep@ over this tree for
 -- the variable name or the default authority: __TEN__ files, not nine. The tenth is
--- @offchain\/spec\/types.md@, a pasted RPC transcript, and it is listed in 'endpoint_sites' as a
+-- @spec\/types.md@, a pasted RPC transcript, and it is listed in 'endpoint_sites' as a
 -- 'Transcript' rather than argued away -- see 'SiteKind' for the ruling and what it costs.
 --
 -- == WHAT WAS ACTUALLY WRONG BEFORE THIS MODULE
 --
 -- Not "the rule was implemented N times". MEASURED at 27-01: the rule was implemented __ZERO__
--- times. The only occurrence of the variable name anywhere under @offchain\/@ was a COMMENT in
--- @offchain\/rig\/deploy-rig.sh@ explaining that the deploy scripts scrub it. Every one of the
+-- times. The only occurrence of the variable name anywhere under this tree was a COMMENT in
+-- @rig\/deploy-rig.sh@ explaining that the deploy scripts scrub it. Every one of the
 -- nine executable sites wrote the default authority out as a literal and read no environment at
 -- all, so @ETH_RPC_URL=...:9545@ was accepted by the shell, ignored by every consumer, and the
 -- run went to 8545. There was no drift between N copies to reconcile; there was one hardcoded
@@ -142,7 +142,7 @@ resolve_endpoint = endpoint_from <$> lookupEnv endpoint_env_var
 -- must not try to be a shell library. What binds the two is the census: that file states the
 -- default once, and the check asserts the literal it states is byte-equal to 'default_endpoint'.
 shell_resolver :: FilePath
-shell_resolver = "offchain/rig/endpoint.sh"
+shell_resolver = "rig/endpoint.sh"
 
 -- | The name of the shell variable 'shell_resolver' states the default in.
 --
@@ -207,12 +207,12 @@ data SiteKind
     -- the pattern. So both are DECLARED, and what is asserted about them is exactly what is true:
     -- they exist, and they are known.
   | Census
-    -- ^ @offchain\/test\/Main.hs@: the suite that asserts this manifest.
+    -- ^ @test\/Main.hs@: the suite that asserts this manifest.
     --
     -- It is a site because it NAMES the resolver -- it has to, in order to check it -- and a
     -- census whose own observer is outside its scope has a hole exactly where the observer is.
     -- What is asserted about it is the opposite of every other kind: it must name the resolver and
-    -- must name NONE of 'chain_reaching_terms', which is @offchain\/rig\/README.md@'s standing
+    -- must name NONE of 'chain_reaching_terms', which is @rig\/README.md@'s standing
     -- claim that @cabal test@ opens no socket, made executable. That claim was prose with a
     -- hand-run grep beside it until 27-01; MEASURED at 27-01 before anything was written, all
     -- three of its tokens were 0, so what shipped is a guard around a property that already held
@@ -229,8 +229,8 @@ data EndpointSite = EndpointSite
 -- | The authority alone -- 'default_endpoint' without its scheme.
 --
 -- COMPUTED, never spelled a second time. It is what a "does this file hardcode the default?" scan
--- has to look for, and the scan runs from @offchain\/test\/Main.hs@, which must not contain the
--- literal: @offchain\/rig\/README.md@ records that @grep -cE \'cast call|HttpProvider|8545\'@ over
+-- has to look for, and the scan runs from @test\/Main.hs@, which must not contain the
+-- literal: @rig\/README.md@ records that @grep -cE \'cast call|HttpProvider|8545\'@ over
 -- that file is 0, and a check that spelled its own subject would be the thing that broke the
 -- property it asserts. Deriving it here means the suite names nothing and a change to
 -- 'default_endpoint' carries the scan with it.
@@ -255,7 +255,7 @@ endpoint_authority =
 -- have reported the five correctly-fixed files as missing.
 --
 -- 'chain_reaching_terms' is the second correction and it is the one that found a site nobody had.
--- CHAIN-06 lists nine and @offchain\/rig\/verify-rig.sh@ is not among them -- because it reached
+-- CHAIN-06 lists nine and @rig\/verify-rig.sh@ is not among them -- because it reached
 -- the chain through foundry's @--rpc-url local@ ALIAS, so it named neither token and no pattern
 -- built from them could see it, while making fourteen @cast@ calls against a live rig. A pattern
 -- that matches "names the variable" does not mean "reaches a chain". These two terms mean the
@@ -273,9 +273,9 @@ endpoint_census_terms = [endpoint_env_var, endpoint_authority, "resolve_endpoint
 --
 -- == WHY @cast call@ IS NOT A THIRD TERM, MEASURED
 --
--- It was, for one run. @offchain\/rig\/README.md@'s chain-independence claim is a hand-run
+-- It was, for one run. @rig\/README.md@'s chain-independence claim is a hand-run
 -- @grep -cE@ that names it, so the first draft inherited it -- and it MATCHED
--- @offchain\/lib\/CheatSwap\/Encoding.hs@, whose haddock says the calldata is built by shelling to
+-- @lib\/CheatSwap\/Encoding.hs@, whose haddock says the calldata is built by shelling to
 -- @cast calldata@. That call reaches nothing: it formats an ABI payload locally, like @cast sig@
 -- and @cast keccak@, and no endpoint is involved. The term matched because @cast call@ is a PREFIX
 -- of @cast calldata@ -- the same shape 26-03 measured when a naming assertion passed on a longer
@@ -293,14 +293,14 @@ chain_reaching_terms = ["--rpc-url", "HttpProvider"]
 --
 -- Ten were MEASURED at 27-01 by the pattern CHAIN-06's own wording implies, which reported nine:
 --
--- > git grep -l -e 'ETH_RPC_URL' -e '127\.0\.0\.1:8545' -- offchain | wc -l
+-- > git grep -l -e 'ETH_RPC_URL' -e '127\.0\.0\.1:8545' -- lib app test rig migrations | wc -l
 -- > 10
 --
 -- and the same command over the whole tracked tree printed 34, the other 24 being planning
 -- documents, historical @docs\/superpowers\/@ plans, @foundry.toml@, a workflow and a Solidity
 -- test -- none of them under this workstream's territory and none of them a consumer. The census
--- is therefore scoped to @offchain\/@, and that scope is asserted rather than assumed: the check
--- that reads this list enumerates every file under @offchain\/@ with NO extension filter, so a new
+-- is therefore scoped to this tree, and that scope is asserted rather than assumed: the check
+-- that reads this list enumerates every file under this tree with NO extension filter, so a new
 -- site of any type is named on the day it lands.
 --
 -- The remaining five are the two resolvers, the suite, and TWO FILES THE MEASURED PATTERN COULD
@@ -313,40 +313,40 @@ chain_reaching_terms = ["--rpc-url", "HttpProvider"]
 -- module sat unlisted for two commits with nothing red.
 endpoint_sites :: [EndpointSite]
 endpoint_sites =
-  [ EndpointSite "offchain/lib/Chain/Endpoint.hs" HaskellResolver
+  [ EndpointSite "lib/Chain/Endpoint.hs" HaskellResolver
       "This module. States the variable and the default once each, for the whole Haskell tree."
-  , EndpointSite "offchain/rig/endpoint.sh" ShellResolver
+  , EndpointSite "rig/endpoint.sh" ShellResolver
       "The shell half. States the default once for the three bash sites, and splits the resolved\
       \ URL into the host and port the producer needs. Its copy of the default is asserted\
       \ byte-equal to this module's."
-  , EndpointSite "offchain/lib/PriceSetter/Rpc.hs" HaskellConsumer
+  , EndpointSite "lib/PriceSetter/Rpc.hs" HaskellConsumer
       "write_price_and_report builds the Provider it runs the slot0 cheat through."
-  , EndpointSite "offchain/lib/VolOrder/Rpc.hs" HaskellConsumer
+  , EndpointSite "lib/VolOrder/Rpc.hs" HaskellConsumer
       "create_order_and_report builds the Provider the order transaction is sent through."
-  , EndpointSite "offchain/lib/StochasticOrderGen/Rpc.hs" HaskellConsumer
+  , EndpointSite "lib/StochasticOrderGen/Rpc.hs" HaskellConsumer
       "run_order_gen_and_report builds the Provider the batched orders are sent through."
-  , EndpointSite "offchain/lib/StochasticPriceGen/Rpc.hs" HaskellConsumer
+  , EndpointSite "lib/StochasticPriceGen/Rpc.hs" HaskellConsumer
       "run_price_gen_and_report builds the Provider the simulated path is written through."
-  , EndpointSite "offchain/app/Main.hs" HaskellConsumer
+  , EndpointSite "app/Main.hs" HaskellConsumer
       "The demo driver. One Provider for the whole run, resolved before the capture is armed so a\
       \ resolution failure cannot leave a half-written artifact."
-  , EndpointSite "offchain/app/CheatSwapProof.hs" HaskellConsumer
+  , EndpointSite "app/CheatSwapProof.hs" HaskellConsumer
       "The cheat-swap capture. Its provider was a top-level pure value; it is now an IO action,\
       \ because a resolver that runs before main does is a resolver the environment cannot reach."
-  , EndpointSite "offchain/rig/capture-batch-return.sh" ShellConsumer
+  , EndpointSite "rig/capture-batch-return.sh" ShellConsumer
       "Captures the empty-batch return shape with cast against a standing rig."
-  , EndpointSite "offchain/rig/capture-cheat-swap-proof.sh" ShellConsumer
+  , EndpointSite "rig/capture-cheat-swap-proof.sh" ShellConsumer
       "Captures the cheat-swap proof with cast against a standing rig."
-  , EndpointSite "offchain/app/ChainReadConformance.hs" HaskellConsumer
+  , EndpointSite "app/ChainReadConformance.hs" HaskellConsumer
       "27-02. CHAIN-02's observational half: reads the pool pinned at a block, changes the state,\
       \ and reads again both ways. It is also the ONLY thing that executes Chain.Read's wiring --\
       \ read_pool_field, read_raw_word_token and block_param are unreachable from cabal test by\
       \ construction, and an unexercised surface is this package's advertised-and-dead shape."
-  , EndpointSite "offchain/rig/capture-chain-read.sh" ShellConsumer
+  , EndpointSite "rig/capture-chain-read.sh" ShellConsumer
       "27-02. Owns the preconditions, the artifact preservation and the self-checks around the\
       \ executable above. Its cast calls are the liveness probe and the chainId assertion, and it\
       \ FAILS rather than skipping when nothing answers."
-  , EndpointSite "offchain/rig/chain-read-conformance.json" Transcript
+  , EndpointSite "rig/chain-read-conformance.json" Transcript
       "27-02's committed artifact, and the THIRD member of this kind. It is not a consumer: it is\
       \ a recorded RPC session, and the resolver rule does not apply to it. It is DECLARED for the\
       \ reason spec/types.md and rig/README.md are -- its provenance note NAMES the shell resolver\
@@ -355,49 +355,49 @@ endpoint_sites =
       \ gets narrowed on the day it first fires. MEASURED at 27-02: it fired on this file's first\
       \ run, and the answer is the twenty-seventh instance of the same one -- declare the prose,\
       \ never relax the pattern."
-  , EndpointSite "offchain/rig/loop-conformance.json" Transcript
+  , EndpointSite "rig/loop-conformance.json" Transcript
       "28-05's committed artifact, written by the FIRST live run on 2026-08-24, and the FOURTH\
       \ member of this kind. Not a consumer: it RECORDS the endpoint the loop attached to\
       \ (\"endpoint\": the resolved URL), which puts the authority's text inside this census's\
       \ blast radius. Declared, never relaxed around -- the same ruling as chain-read-conformance.json\
       \ one entry up. Its presence is what retired the check that asserted its absence."
-  , EndpointSite "offchain/lib/Loop/Chain.hs" HaskellConsumer
+  , EndpointSite "lib/Loop/Chain.hs" HaskellConsumer
       "28-02. THE ONLY module in the loop layer that names the transport: it builds a\
       \ Loop.Poll.ChainSource -- a record of five actions -- out of a resolved endpoint and the\
-      \ three addresses the Shock filter needs. Everything else under offchain/lib/Loop/ takes\
+      \ three addresses the Shock filter needs. Everything else under lib/Loop/ takes\
       \ that record as an argument and is therefore drivable with no node, which is the whole\
       \ reason LOOP-01's restart proof can exist: the check supplies the source, so the check is\
       \ what the chain did while the loop was down."
-  , EndpointSite "offchain/rig/capture-loop.sh" ShellConsumer
+  , EndpointSite "rig/capture-loop.sh" ShellConsumer
       "28-05. LOOP-01..05's LIVE half. It stands a fresh rig up, drives one Shock into a mined\
       \ transaction through contracts.ShockWriter (PR #42, issue #26), runs the loop with --once\
       \ and records the watermark either side, every ledger row, the published fixture's digest\
       \ and the observed exit code. FIRST RUN 2026-08-24, exit 0: its artifact,\
-      \ offchain/rig/loop-conformance.json, is the Transcript entry above, and the check that\
+      \ rig/loop-conformance.json, is the Transcript entry above, and the check that\
       \ asserted that artifact's ABSENCE is retired per its own text. HISTORY: until then it was\
       \ the only capture here that had never been run, refusing by number on CHAIN-01 (#26) and\
       \ LOOP-04 (#24, #25)."
-  , EndpointSite "offchain/rig/verify-rig.sh" ShellConsumer
+  , EndpointSite "rig/verify-rig.sh" ShellConsumer
       "SC-2. THE SITE CHAIN-06's LIST OF NINE DOES NOT CONTAIN: fourteen cast calls against a live\
       \ rig, reached through foundry's --rpc-url local alias, so it named neither the variable nor\
       \ the authority and the pattern that found the other nine could not see it."
-  , EndpointSite "offchain/rig/deploy-rig.sh" ShellProducer
+  , EndpointSite "rig/deploy-rig.sh" ShellProducer
       "The PRODUCER. Owns anvil: kills the stale listener on the resolved port, starts the chain\
       \ on the resolved host and port, and passes the resolved URL to every forge and cast\
       \ invocation. CHAIN-07 is the half that a consumer-only resolver leaves open."
-  , EndpointSite "offchain/spec/types.md" Transcript
+  , EndpointSite "spec/types.md" Transcript
       "A pasted RPC transcript kept as evidence. Reads nothing, starts nothing, and is listed so\
-      \ the census over offchain/ is CLOSED rather than quietly narrowed around it."
-  , EndpointSite "offchain/rig/README.md" Transcript
+      \ the census over this tree is CLOSED rather than quietly narrowed around it."
+  , EndpointSite "rig/README.md" Transcript
       "Operator documentation. It names the alias in the commands it tells an operator to run, so\
       \ the census sees it; it executes nothing itself."
-  , EndpointSite "offchain/LOOP.md" Transcript
+  , EndpointSite "LOOP.md" Transcript
       "The loop's operator manual. It states ETH_RPC_URL and its default in the environment table\
       \ it tells an operator to set, so the census sees it; it executes nothing itself. It was the\
       \ thirty-first instance of prose caught by the pattern, and the first caught by the develop\
       \ gate rather than locally: it was committed after the suite's last run. Declared, as the\
       \ thirty before it were."
-  , EndpointSite "offchain/test/Main.hs" Census
+  , EndpointSite "test/Main.hs" Census
       "The suite. Names the resolver in order to assert about it, and is asserted to name none of\
       \ chain_reaching_terms -- README.md's claim that cabal test opens no socket, made\
       \ executable."

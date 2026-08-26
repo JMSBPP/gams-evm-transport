@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # capture-loop.sh -- LOOP-01..05's LIVE half, end to end, against a real rig,
-# recorded in offchain/rig/loop-conformance.json.
+# recorded in rig/loop-conformance.json.
 #
 # THIS SCRIPT HAS NEVER BEEN RUN, AND THAT IS RECORDED RATHER THAN HIDDEN.
 # ------------------------------------------------------------------------
@@ -36,7 +36,7 @@
 #
 # So the script ships unrun, its artifact is deliberately ABSENT, and the suite
 # asserts that absence: `the_live_loop_capture_is_present_and_names_its_block`
-# passes while offchain/rig/loop-conformance.json does not exist and FAILS on the
+# passes while rig/loop-conformance.json does not exist and FAILS on the
 # day it appears, at which point the phase close must assert over the artifact
 # instead. That inversion is the only form in which "this evidence does not exist
 # yet" can itself be evidence.
@@ -68,10 +68,10 @@
 # without the tool it reports success for the reason it exists to forbid.
 #
 # USAGE
-#   bash offchain/rig/deploy-rig.sh            # a FRESH rig; this is not optional
+#   bash rig/deploy-rig.sh            # a FRESH rig; this is not optional
 #   PGSTORE_DSN=...  GAMS_MODEL=/abs/volume_path.gms \
-#     bash offchain/rig/capture-loop.sh
-#   bash offchain/rig/deploy-rig.sh --stop
+#     bash rig/capture-loop.sh
+#   bash rig/deploy-rig.sh --stop
 #
 # NOTE: this MUTATES the chain, the database and the publication directory, and
 # it is NOT idempotent. It needs a FRESH rig -- the same warning
@@ -83,21 +83,21 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-MANIFEST="${RIG_MANIFEST:-offchain/rig/rig-manifest.json}"
-IMPORT_REF=offchain/rig/import-ref.txt
-OUT=offchain/rig/loop-conformance.json
+MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
+IMPORT_REF=rig/import-ref.txt
+OUT=rig/loop-conformance.json
 FIXTURE_DIR_DEFAULT=test/models/mev_tax_model_one/fixtures
 FIXTURES="${FIXTURE_DIR:-$FIXTURE_DIR_DEFAULT}"
 FIXTURE_FILE=volume_path.json
 # The contract name Loop's own executable looks for. Stated here so the refusal
-# can quote it rather than saying "a contract" -- offchain/app/LoopMain.hs holds
+# can quote it rather than saying "a contract" -- app/LoopMain.hs holds
 # the same string in shock_emitter_contract.
 SHOCK_EMITTER=ShockWriter
 
-# CHAIN-06. Sourced, never re-spelled -- offchain/rig/endpoint.sh states the default once for the
+# CHAIN-06. Sourced, never re-spelled -- rig/endpoint.sh states the default once for the
 # shell side and Chain.Endpoint states it once for the Haskell side, and the suite asserts the two
 # statements BYTE-EQUAL.
-. offchain/rig/endpoint.sh
+. rig/endpoint.sh
 RPC="$RPC_URL"
 
 fail() {
@@ -120,7 +120,7 @@ command -v psql >/dev/null 2>&1 || fail "psql is not on PATH." \
   "would be the loop agreeing with itself."
 
 [ -f "$MANIFEST" ] || fail "no manifest at $(realpath -m "$MANIFEST")" \
-  "stand the rig up first: bash offchain/rig/deploy-rig.sh"
+  "stand the rig up first: bash rig/deploy-rig.sh"
 [ -f "$IMPORT_REF" ] || fail "no $IMPORT_REF -- generatedFrom cannot be recorded" \
   "and a capture without it cannot be told stale from fresh."
 
@@ -129,7 +129,7 @@ if ! cast block-number --rpc-url "$RPC" >/dev/null 2>&1; then
     "This is NOT a skip. LOOP-01..05's live evidence is an observation against a real" \
     "chain, and a capture that quietly did nothing would leave the committed artifact" \
     "stale -- or absent -- while reporting success." \
-    "Stand the rig up first: bash offchain/rig/deploy-rig.sh"
+    "Stand the rig up first: bash rig/deploy-rig.sh"
 fi
 
 LIVE_CHAIN_ID=$(cast chain-id --rpc-url "$RPC")
@@ -148,7 +148,7 @@ EMITTER=$(jq -r --arg k "$SHOCK_EMITTER" '.contracts[$k] // ""' "$MANIFEST")
 if [ -z "$EMITTER" ]; then
   fail "$(realpath -m "$MANIFEST") names no contracts.$SHOCK_EMITTER, so there is nothing to emit a Shock." \
     "deploy-rig.sh step 3b (DeployShockWriter.s.sol, shipped by PR #42 for issue #26) did not" \
-    "run, or the manifest predates it. Re-run: bash offchain/rig/deploy-rig.sh" \
+    "run, or the manifest predates it. Re-run: bash rig/deploy-rig.sh" \
     "HISTORY, kept so the refusal reads the same to an operator who last saw the old one:" \
     "CHAIN-01 WAS BLOCKED, ON GITHUB ISSUE #26 -- the plank / mev-migrate workstream." \
     "The Shock event is emitted from a forge TEST, not from a deployable contract" \
@@ -166,7 +166,7 @@ POOL_ID=$(jq -r '.pool.poolId // ""' "$MANIFEST")
 [ -n "$POOL_ID" ] || fail "$(realpath -m "$MANIFEST") has no pool.poolId -- there is no pool to read."
 MANAGER=$(jq -r '.contracts.PoolManager // ""' "$MANIFEST")
 [ -n "$MANAGER" ] || fail "$(realpath -m "$MANIFEST") has no contracts.PoolManager." \
-  "re-run: bash offchain/rig/deploy-rig.sh"
+  "re-run: bash rig/deploy-rig.sh"
 
 # --- THE PUBLICATION DIRECTORY. LOOP-04, issues #24 and #25. ---------------
 #
@@ -202,7 +202,7 @@ DSN="${PGSTORE_DSN:-}"
   "The ledger and the watermark are rows; a capture with no database has nothing" \
   "to read them out of."
 psql "$DSN" -Atqc 'select 1' >/dev/null 2>&1 || fail "no database answered PGSTORE_DSN." \
-  "bash offchain/rig/capture-store-conformance.sh provisions one via Docker."
+  "bash rig/capture-store-conformance.sh provisions one via Docker."
 
 # --- VALIDATE FIRST, REPLACE SECOND ----------------------------------------
 # The same preservation capture-chain-read.sh performs, for the same reason: the writer hardcodes
@@ -409,5 +409,5 @@ if [ -n "${FORK_HEIGHT:-}" ]; then
   echo "NEXT  the consuming forge test, against this rig (anvil is still up; stop it AFTER):"
   echo "      forge test --match-test test__priceInvarianceUnderVolumePath \\"
   echo "        --fork-url $RPC --fork-block-number $FORK_HEIGHT -vv"
-  echo "      then: bash offchain/rig/deploy-rig.sh --stop"
+  echo "      then: bash rig/deploy-rig.sh --stop"
 fi

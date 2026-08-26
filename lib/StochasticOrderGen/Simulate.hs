@@ -32,7 +32,7 @@ simulate_batch_count gen (Poisson lambda_value) = poisson lambda_value gen
 -- significand bits; the top of the band needs 70. A draw near 1e21 therefore has roughly 17
 -- forced-zero low bits. That is FINE for VEGA-01, which is about units and magnitude -- but it
 -- makes the drawn values a WEAK field-boundary corpus. They must NOT be used as the RPIN-02/03
--- packing corpus; @vega_corners@ in @offchain\/test\/Main.hs@ is the CONSTRUCTED corpus that
+-- packing corpus; @vega_corners@ in @test\/Main.hs@ is the CONSTRUCTED corpus that
 -- covers the field boundaries, and the two are deliberately kept separate.
 draw_target_vega :: GenIO -> VegaDraw -> IO Integer
 draw_target_vega gen (LogUniform lo hi) = do

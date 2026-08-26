@@ -21,7 +21,7 @@
 -- == WHY IT IS HAND-WRITTEN AND NOT A JSON LIBRARY CALL
 --
 -- BYTE-03's source scan asserts that no JSON library is on the storage path -- every module under
--- @offchain\/lib\/Store\/@, this one included, is named in that scan's list. A recogniser is also
+-- @lib\/Store\/@, this one included, is named in that scan's list. A recogniser is also
 -- not a decoder: nothing here builds a value, so nothing here can re-render a number or reorder a
 -- key, which is the entire failure mode BYTE-02 and BYTE-03 exist to prevent. It answers 'Bool'-
 -- shaped questions with a reason attached and nothing else.

@@ -1,15 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
--- Generator for @offchain\/rig\/peer-haskell-bytes.json@ (plan 21-05, task 2 part A).
+-- Generator for @rig\/peer-haskell-bytes.json@ (plan 21-05, task 2 part A).
 --
 -- RUN IT WITH:
 --
 -- @
---     cabal build lib:cfmm-replicationPlank-rpc-api
---     OUT=offchain\/rig\/peer-haskell-bytes.json
---     cabal exec -- runghc --ghc-arg=-package --ghc-arg=cfmm-replicationPlank-rpc-api \\
---       offchain\/rig\/gen-peer-bytes.hs > "$OUT.raw" \\
+--     cabal build lib:gams-evm-transport
+--     OUT=rig\/peer-haskell-bytes.json
+--     cabal exec -- runghc --ghc-arg=-package --ghc-arg=gams-evm-transport \\
+--       rig\/gen-peer-bytes.hs > "$OUT.raw" \\
 --       && jq . "$OUT.raw" > "$OUT.tmp" \\
 --       && mv "$OUT.tmp" "$OUT" && rm -f "$OUT.raw"
 -- @
@@ -60,7 +60,7 @@ golden_path :: FilePath
 golden_path = "test/pos_spec/fixtures/vol_order_return_golden.json"
 
 capture_path :: FilePath
-capture_path = "offchain/rig/batch-return-capture.json"
+capture_path = "rig/batch-return-capture.json"
 
 main :: IO ()
 main = do
@@ -137,11 +137,11 @@ build golden capture = do
     object
       [ "_generated_by" .=
           T.pack
-            ("plan 21-05 task 2 part A, by offchain/rig/gen-peer-bytes.hs. Command: \
-             \cabal build lib:cfmm-replicationPlank-rpc-api; \
-             \OUT=offchain/rig/peer-haskell-bytes.json; \
-             \cabal exec -- runghc --ghc-arg=-package --ghc-arg=cfmm-replicationPlank-rpc-api \
-             \offchain/rig/gen-peer-bytes.hs > \"$OUT.raw\" \
+            ("plan 21-05 task 2 part A, by rig/gen-peer-bytes.hs. Command: \
+             \cabal build lib:gams-evm-transport; \
+             \OUT=rig/peer-haskell-bytes.json; \
+             \cabal exec -- runghc --ghc-arg=-package --ghc-arg=gams-evm-transport \
+             \rig/gen-peer-bytes.hs > \"$OUT.raw\" \
              \&& jq . \"$OUT.raw\" > \"$OUT.tmp\" && mv \"$OUT.tmp\" \"$OUT\" && rm -f \"$OUT.raw\". \
              \NOT a bare `| jq . > $OUT` pipeline: the shell truncates $OUT before runghc \
              \starts, and jq . on empty stdin exits 0 writing nothing, so a failed run \

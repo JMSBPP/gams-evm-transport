@@ -331,7 +331,7 @@ capture_path :: IO FilePath
 capture_path = fromMaybe default_capture_path <$> lookupEnv capture_env_var
 
 default_capture_path :: FilePath
-default_capture_path = "offchain/rig/driver-run-capture.json"
+default_capture_path = "rig/driver-run-capture.json"
 
 -- | Write the run. Total: a 'DriverRun' with no steps and no legacy write is still valid JSON that
 -- decodes, which is the entire value of the flush-on-failure policy.
@@ -346,7 +346,7 @@ write_capture = write_json_atomically
 -- @aeson@'s 'encodeFile' opens the destination for writing — truncating it — and then STREAMS a
 -- lazily-built 'Data.ByteString.Lazy.ByteString' into it. Any bottom reached partway through the
 -- encode therefore leaves the destination truncated at whatever had already been flushed. That is
--- not a hypothetical shape for this artifact: the flush handler in @offchain\/app\/Main.hs@ builds
+-- not a hypothetical shape for this artifact: the flush handler in @app\/Main.hs@ builds
 -- the record from fields that can be bottoms (@manifest_contract@ is @either error id@), catches
 -- everything, and prints a WARNING — so the committed evidence file would be destroyed and the
 -- program would report a warning and exit 0. Regeneration that destroys the artifact it regenerates
@@ -601,8 +601,8 @@ decimal = toJSON . show
 
 provenance_note :: String
 provenance_note =
-  "Every value below was produced by offchain/app/Main.hs against the live rig stood up by"
-    ++ " offchain/rig/deploy-rig.sh. Nothing here was transcribed. `steps` records one cheat ->"
+  "Every value below was produced by app/Main.hs against the live rig stood up by"
+    ++ " rig/deploy-rig.sh. Nothing here was transcribed. `steps` records one cheat ->"
     ++ " clock -> swap step each: `tick` and `expected_ts` are what the driver SUBMITTED and `e3`"
     ++ " is what DynamicFeeHook actually recorded, so the two are comparable by value."
     ++ " dr_complete is false when the run aborted mid-fold and the artifact was flushed from the"

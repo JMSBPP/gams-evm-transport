@@ -20,7 +20,7 @@
 --     run on purpose — and records what actually comes back.
 --
 -- It is a capture TOOL, in the same family as @capture-batch-return.sh@, and not part of the demo
--- driver: plan 22-05 rewires @offchain\/app\/Main.hs@ substantially, and an environment-flag branch
+-- driver: plan 22-05 rewires @app\/Main.hs@ substantially, and an environment-flag branch
 -- there would collide with it. The committed artifact is what @cabal test@ then asserts over,
 -- offline, so the suite stays chain-independent.
 --
@@ -80,10 +80,10 @@ import Rig.Manifest
 -- ---------------------------------------------------------------------------------------------
 
 output_path :: FilePath
-output_path = "offchain/rig/cheat-swap-proof.json"
+output_path = "rig/cheat-swap-proof.json"
 
 import_ref_path :: FilePath
-import_ref_path = "offchain/rig/import-ref.txt"
+import_ref_path = "rig/import-ref.txt"
 
 -- | CHAIN-06, and the type change is the whole fix.
 --
@@ -429,8 +429,8 @@ quantity = unQuantity
 
 provenance_note :: String
 provenance_note =
-  "Every value below was produced by offchain/app/CheatSwapProof.hs against the live rig stood up"
-    ++ " by offchain/rig/deploy-rig.sh. Nothing here was transcribed. Measurement B is the phase's"
+  "Every value below was produced by app/CheatSwapProof.hs against the live rig stood up"
+    ++ " by rig/deploy-rig.sh. Nothing here was transcribed. Measurement B is the phase's"
     ++ " blocker EXECUTED ON PURPOSE: it is identical to measurement A except that the slot0 write"
     ++ " is aimed at PriceSetterPoolManager, the manager DynamicFeeHook does not read. Its receipt"
     ++ " is expected to look perfectly healthy -- status 1, one E3, one E5 -- while carrying a tick"

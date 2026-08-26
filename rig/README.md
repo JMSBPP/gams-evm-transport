@@ -17,10 +17,10 @@ git -c submodule.lib/panoptic-helper.update=none submodule update --init --recur
 
 forge build                      # must exit 0 before anything else
 
-offchain/rig/check-upstream.sh   # the artifacts are imported from origin/develop
-offchain/rig/verify-import.sh    # SC-1: imported files match the recorded ref
-offchain/rig/deploy-rig.sh       # SC-2/SC-5: owns anvil; writes offchain/rig/rig-manifest.json
-offchain/rig/verify-rig.sh       # SC-2: every contract answers a live read
+rig/check-upstream.sh   # the artifacts are imported from origin/develop
+rig/verify-import.sh    # SC-1: imported files match the recorded ref
+rig/deploy-rig.sh       # SC-2/SC-5: owns anvil; writes rig/rig-manifest.json
+rig/verify-rig.sh       # SC-2: every contract answers a live read
 
 cabal build --enable-tests -j all && cabal test  # SC-3/SC-4: manifest loads; pins recompute
 
@@ -29,7 +29,7 @@ RIG_SEED=123456789 cabal run gams-evm-transport
 ```
 
 The last step is the run itself, not a smoke test. It drives both price mechanisms and all three
-order shapes against the standing rig and writes `offchain/rig/driver-run-capture.json` —
+order shapes against the standing rig and writes `rig/driver-run-capture.json` —
 committed — carrying the five-step cheat-swap path with its E3 per step, and the `orders` block
 (single, mixed, zero-arrival). That artifact is what `cabal test`'s `driv01_*` and `driv02_*`
 checks assert against, which is how the suite stays chain-independent while still asserting facts
@@ -43,7 +43,7 @@ not, and the artifact would record the drawn value, so nothing downstream could 
 build exits 0 against a test suite that would not compile — MEASURED four separate times in
 Phase 21. Do not "simplify" the flag away.
 
-`offchain/rig/deploy-rig.sh --stop` kills the anvil the rig owns.
+`rig/deploy-rig.sh --stop` kills the anvil the rig owns.
 
 ### The sixth deploy script
 
@@ -85,7 +85,7 @@ whole usable range.
 ### Capturing the batch return
 
 ```bash
-offchain/rig/capture-batch-return.sh   # writes offchain/rig/batch-return-capture.json
+rig/capture-batch-return.sh   # writes rig/batch-return-capture.json
 ```
 
 Requires a standing rig — it reads the manager address out of `rig-manifest.json` and calls the
@@ -93,7 +93,7 @@ live contract, so run it after `deploy-rig.sh` and `verify-rig.sh`. It sends no 
 `create_orders` returns its array, so four plain `eth_call`s produce the whole capture and nothing
 on chain changes.
 
-It writes `offchain/rig/batch-return-capture.json`, which IS committed: real
+It writes `rig/batch-return-capture.json`, which IS committed: real
 `(bool, uint256)[]` returndata for four cases (`N0_empty`, `N1_success`, `N2_success_then_fail`,
 `N1_dirty_vega`), each with the calldata that produced it, plus `chainId`, `manager` and
 `blockNumber`. It exists so `cabal test` can assert against bytes that actually came off a chain
@@ -134,7 +134,7 @@ flag; it is a no-op when the skip is already configured.
 
 **The `cabal test` row, precisely.** Phase 21 MEASURED the suite chain-independent: rig stopped,
 `pgrep anvil` empty, `cast block-number` erroring, `cabal test` still exit 0. It opens no socket
-(`grep -cE 'cast call|HttpProvider|8545' offchain/test/Main.hs` is 0) and consumes committed,
+(`grep -cE 'cast call|HttpProvider|8545' test/Main.hs` is 0) and consumes committed,
 provenance-bearing artifacts instead. Two things are still needed, for two different reasons:
 
 - **`cast` on PATH** — `sc4_cast_agreement` shells out to `cast sig` / `cast keccak` to recompute
@@ -188,10 +188,10 @@ too.
 
 ```bash
 S=123456789
-offchain/rig/deploy-rig.sh && RIG_SEED=$S cabal run gams-evm-transport
-cp offchain/rig/driver-run-capture.json /tmp/replay-a.json
-offchain/rig/deploy-rig.sh && RIG_SEED=$S cabal run gams-evm-transport   # FRESH rig
-cp offchain/rig/driver-run-capture.json /tmp/replay-b.json
+rig/deploy-rig.sh && RIG_SEED=$S cabal run gams-evm-transport
+cp rig/driver-run-capture.json /tmp/replay-a.json
+rig/deploy-rig.sh && RIG_SEED=$S cabal run gams-evm-transport   # FRESH rig
+cp rig/driver-run-capture.json /tmp/replay-b.json
 
 PROJ='{ticks: [.steps[].tick], e3: [.steps[].e3.tick], ids: [.orders.mixed.readbacks[].id]}'
 jq -S "$PROJ" /tmp/replay-a.json > /tmp/ra.json
@@ -225,11 +225,11 @@ deterministic and replayable, but it means the three drivers are not independent
 
 | file | committed? | written by | read by |
 |---|---|---|---|
-| `offchain/rig/rig-pins.json` | YES | `offchain/rig/generate-pins.sh` (from the imported `src/interfaces/**/*.plk`) | `Rig.Manifest`, the pin tests |
-| `offchain/rig/rig-manifest.json` | NO (gitignored) | `offchain/rig/deploy-rig.sh` (from `broadcast/**/run-latest.json`) | `Rig.Manifest`, the drivers |
-| `offchain/rig/batch-return-capture.json` | YES | `offchain/rig/capture-batch-return.sh` | `cabal test`'s `rpin05_*` checks |
-| `offchain/rig/cheat-swap-proof.json` | YES | `offchain/rig/capture-cheat-swap-proof.sh` (`cheat-swap-proof` executable) | `cabal test`'s `driv01_cheat_swap_proof_*`, `driv01_cheated_tick_reaches_e3`, `driv01_wrong_pool_is_silent`, `driv01_same_second_is_a_silent_noop`, `driv01_extreme_tick_is_survivable` |
-| `offchain/rig/driver-run-capture.json` | YES | `cabal run gams-evm-transport` | `cabal test`'s `driv01_run_capture_*`, `driv01_e3_per_step_matches_submitted`, `driv01_no_same_second_noop`, `driv01_legacy_write_price_still_ran`, and all four `driv02_*` checks |
+| `rig/rig-pins.json` | YES | `rig/generate-pins.sh` (from the imported `src/interfaces/**/*.plk`) | `Rig.Manifest`, the pin tests |
+| `rig/rig-manifest.json` | NO (gitignored) | `rig/deploy-rig.sh` (from `broadcast/**/run-latest.json`) | `Rig.Manifest`, the drivers |
+| `rig/batch-return-capture.json` | YES | `rig/capture-batch-return.sh` | `cabal test`'s `rpin05_*` checks |
+| `rig/cheat-swap-proof.json` | YES | `rig/capture-cheat-swap-proof.sh` (`cheat-swap-proof` executable) | `cabal test`'s `driv01_cheat_swap_proof_*`, `driv01_cheated_tick_reaches_e3`, `driv01_wrong_pool_is_silent`, `driv01_same_second_is_a_silent_noop`, `driv01_extreme_tick_is_survivable` |
+| `rig/driver-run-capture.json` | YES | `cabal run gams-evm-transport` | `cabal test`'s `driv01_run_capture_*`, `driv01_e3_per_step_matches_submitted`, `driv01_no_same_second_noop`, `driv01_legacy_write_price_still_ran`, and all four `driv02_*` checks |
 
 `RIG_CHEAT_SWAP_PROOF` and `DRIVER_CAPTURE` override the last two paths. They differ in SCOPE and
 deliberately so: `RIG_CHEAT_SWAP_PROOF` redirects the CHECKS only (the capture tool always writes
@@ -255,9 +255,9 @@ Write beside the target and rename:
 
 ```bash
 cabal build lib:gams-evm-transport
-OUT=offchain/rig/peer-haskell-bytes.json
+OUT=rig/peer-haskell-bytes.json
 cabal exec -- runghc --ghc-arg=-package --ghc-arg=gams-evm-transport \
-  offchain/rig/gen-peer-bytes.hs > "$OUT.raw" \
+  rig/gen-peer-bytes.hs > "$OUT.raw" \
   && jq . "$OUT.raw" > "$OUT.tmp" \
   && mv "$OUT.tmp" "$OUT" && rm -f "$OUT.raw"
 ```
@@ -267,12 +267,12 @@ The `--ghc-arg=-package` pair is required on ghc 9.10.3 — without it `runghc` 
 `runghc -package X file.hs` and `runghc -- -package X file.hs` spellings both die with
 `Not in scope: main`.
 
-### Why a capture goes stale when no `offchain/` file changed (issue #38)
+### Why a capture goes stale when no file under this tree changed (issue #38)
 
 `PriceSetterHook`'s address is **CREATE2-mined** over its initcode, and the initcode ends in
 solc's metadata hash. So a change to **any global compiler input** — `remappings.txt`,
 `foundry.toml`, the solc version, or the hook's own source *or comments* — moves the hook's
-address while nothing under `offchain/` changes, and both `driv01_*_is_present_and_fresh`
+address while nothing under this tree changes, and both `driv01_*_is_present_and_fresh`
 checks go red on the develop gate. Measured on PR #37: two added `@cryptoalgebra` remappings
 changed **every** contract's initcode (metadata hash), but only the CREATE2-mined hook moved —
 the CREATE-deployed contracts keep their `(deployer, nonce)` addresses.
@@ -284,7 +284,7 @@ To make the cause nameable rather than guessed, `deploy-rig.sh` records
 `initcode.PriceSetterHook` in the manifest — `sha256` over the lowercase hex text of the
 broadcast's creation input — and both captures carry it as `rig.priceSetterHookInitcode`. The
 freshness checks compare the digest **before** the address (`hook_identity_agrees` in
-`offchain/test/Main.hs`), so a red gate says which of these it is:
+`test/Main.hs`), so a red gate says which of these it is:
 
 | initcode | address | meaning |
 |---|---|---|
@@ -385,8 +385,8 @@ Two things this does NOT do, both measured:
 Two runs produce a byte-identical manifest once the timestamp is excluded:
 
 ```bash
-offchain/rig/deploy-rig.sh && jq -S 'del(.generatedAt)' offchain/rig/rig-manifest.json > /tmp/run1.json
-offchain/rig/deploy-rig.sh && jq -S 'del(.generatedAt)' offchain/rig/rig-manifest.json > /tmp/run2.json
+rig/deploy-rig.sh && jq -S 'del(.generatedAt)' rig/rig-manifest.json > /tmp/run1.json
+rig/deploy-rig.sh && jq -S 'del(.generatedAt)' rig/rig-manifest.json > /tmp/run2.json
 diff -u /tmp/run1.json /tmp/run2.json    # empty
 sha256sum /tmp/run1.json /tmp/run2.json  # equal
 ```
@@ -412,7 +412,7 @@ manifest field — while silently making the rig's on-chain STATE irreproducible
 
 ## `volume-path-golden.json` — the real GAMS artifact, and where its digest is NOT
 
-`offchain/rig/volume-path-golden.json` is **606 bytes** of real solver output. It is the only
+`rig/volume-path-golden.json` is **606 bytes** of real solver output. It is the only
 corpus that can exercise BYTE-02 at all: the adversarial corpus catches *transport* corruption — a
 byte the wire cannot carry — while `jsonb`'s key reorder is a function of the key names and lengths
 and a number re-render is a function of the actual numeric literals, so a shape-dependent
@@ -427,7 +427,7 @@ normalization needs the real shape. A synthetic fixture cannot substitute.
 | **Last four bytes** | `5d 0a 7d 0a` — `"]\n}\n"`, trailing newline PRESENT |
 
 **The sha256 is deliberately NOT written here.** It is pinned in Haskell source, at
-`offchain/lib/Store/Types.hs`'s `volume_path_golden_sha256`, and the length beside it at
+`lib/Store/Types.hs`'s `volume_path_golden_sha256`, and the length beside it at
 `volume_path_golden_bytes_len`. A digest recorded next to the thing it digests is a tautology —
 regenerate the bytes and regenerate the digest and the comparison still passes — and this
 repository has already shipped that defect once. The pin lives in a different file, maintained by
@@ -442,11 +442,11 @@ have no subject at all.
 
 ## `capture-store-conformance.sh` — the one script here that needs a database
 
-Everything else under `offchain/rig/` needs a chain. This one needs Postgres, and it is the only
+Everything else under `rig/` needs a chain. This one needs Postgres, and it is the only
 place in Phase 23 that does: `cabal test` opens no socket, by construction rather than by a branch.
 
 ```bash
-bash offchain/rig/capture-store-conformance.sh     # docker required; nothing else
+bash rig/capture-store-conformance.sh     # docker required; nothing else
 ```
 
 It provisions its own container on a **non-default host port**, creates a **per-run database**,
@@ -456,7 +456,7 @@ fails *open* — a workflow whose `env:` block drifts silently returns to skip-m
 whereas here its failure mode is *no artifact at all*, and a stale artifact is caught by the
 computed freshness oracle rather than by nobody.
 
-The artifact it writes, `offchain/rig/store-conformance.json`, is **committed**, so a fresh
+The artifact it writes, `rig/store-conformance.json`, is **committed**, so a fresh
 checkout can assert over real database evidence while staying database-independent. On any failure
 the previous artifact is put back from a saved copy — a capture that fails must not leave the
 operator with a bad artifact and no good one.
@@ -465,11 +465,11 @@ operator with a bad artifact and no good one.
 
 Its twin one section up needs Postgres. This one needs the real GAMS 54.1 / CONOPT 4.39 toolchain,
 and it is the only place in Phase 24 that does: `cabal test` invokes no solver, by construction, and
-a scanning check inside the suite forbids `offchain/test/Main.hs` from even *naming* one.
+a scanning check inside the suite forbids `test/Main.hs` from even *naming* one.
 
 ```bash
 GAMS_MODEL=/abs/path/to/volume_path.gms \
-  bash offchain/rig/capture-gams-conformance.sh
+  bash rig/capture-gams-conformance.sh
 ```
 
 | variable | meaning |
@@ -485,8 +485,8 @@ the leading-zero argv token digesting differently from the golden, and CONOPT's 
 differing from both of its decoys — and on any failure the previous artifact is put back from a
 saved copy, verified by digest.
 
-The artifact it writes, `offchain/rig/gams-conformance.json`, is **committed**, so a fresh checkout
+The artifact it writes, `rig/gams-conformance.json`, is **committed**, so a fresh checkout
 can assert over real-solver evidence while staying solver-independent. `Gams.Invoke` — the module
-that resolves the live binary and model — is imported by `offchain/app/GamsConformance.hs` and by
+that resolves the live binary and model — is imported by `app/GamsConformance.hs` and by
 nothing else in the package; that import graph is what makes the suite's solver-freedom a structural
 fact rather than a convention.

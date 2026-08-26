@@ -11,7 +11,7 @@
 -- simulated path, aimed at the @DynamicFeeHook@ pool on the REAL @PoolManager@, advancing the chain
 -- clock by a fixed stride each step. @beforeSwap@ reads the pre-swap (i.e. cheated) tick and writes
 -- the timepoint itself, so every step produces an E3 carrying the tick the driver submitted, with
--- no offchain @writeTimepoint@ call anywhere.
+-- no off-chain @writeTimepoint@ call anywhere.
 --
 -- 22-04 measured why the distinction matters and is not stylistic: the identical sequence aimed at
 -- @PriceSetterPoolManager@ came back at status 1 with one E3 and one E5 carrying the WRONG tick. A

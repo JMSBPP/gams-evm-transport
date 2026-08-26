@@ -4,9 +4,9 @@
 --
 -- DB-02: connection config comes from the environment, no credential is hardcoded, and the
 -- resolution follows the convention already in force -- @Rig.Manifest.rig_pins_path@'s
--- @fromMaybe default \<$\> lookupEnv@ (@offchain\/lib\/Rig\/Manifest.hs:191-197@) and
+-- @fromMaybe default \<$\> lookupEnv@ (@lib\/Rig\/Manifest.hs:191-197@) and
 -- @Driver.Capture.capture_env_var@'s name-the-variable-once constant
--- (@offchain\/lib\/Driver\/Capture.hs:319-327@).
+-- (@lib\/Driver\/Capture.hs:319-327@).
 --
 -- The constants exist because 22-03 MEASURED @RIG_MANIFEST@ being advertised and silently
 -- ignored, and 22-04 measured the same defect on a second surface. A variable named once, in one
@@ -62,7 +62,7 @@ store_conformance_env_var :: String
 store_conformance_env_var = "STORE_CONFORMANCE"
 
 default_store_conformance_path :: FilePath
-default_store_conformance_path = "offchain/rig/store-conformance.json"
+default_store_conformance_path = "rig/store-conformance.json"
 
 -- | @STORE_CONFORMANCE@, defaulting to the committed evidence.
 store_conformance_path :: IO FilePath
@@ -72,10 +72,10 @@ store_conformance_path = fromMaybe default_store_conformance_path <$> lookupEnv 
 -- The migration directory
 -- ---------------------------------------------------------------------------------------------
 
--- | Under @offchain\/@ ON PURPOSE, and it is not free: the first @.sql@ landing here forces
+-- | Under this tree ON PURPOSE, and it is not free: the first @.sql@ landing here forces
 -- @purge_scanned_extensions@, @purge_known_extensions@ and a re-MEASURED @purge_file_floor@ to
 -- move together (plan 23-03's task, budgeted rather than discovered as a red). SQL is EXECUTED
 -- content, and free-passing an executable file type by keeping it outside the purge's reach is
 -- the worse trade.
 migrations_dir :: FilePath
-migrations_dir = "offchain/migrations"
+migrations_dir = "migrations"

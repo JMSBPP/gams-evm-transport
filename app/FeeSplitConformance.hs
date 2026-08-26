@@ -66,7 +66,7 @@
 --
 -- > fee-split-conformance <scratch-directory>
 --
--- The scratch directory is prepared by @offchain\/rig\/capture-fee-split.sh@ and is never inside the
+-- The scratch directory is prepared by @rig\/capture-fee-split.sh@ and is never inside the
 -- working tree and never inside @model\/@, which is another workstream's territory.
 module Main (main) where
 
@@ -157,7 +157,7 @@ fixture_n_events       = 8
 -- from. The suite recomputes this digest from its own disk, so editing the splitter without
 -- re-capturing reddens.
 splitter_source_path :: FilePath
-splitter_source_path = "offchain/lib/Fee/Split.hs"
+splitter_source_path = "lib/Fee/Split.hs"
 
 shock_at :: Pair -> Integer -> Shock
 shock_at pair target = Shock
@@ -181,7 +181,7 @@ main = do
     [scratch] -> capture scratch
     _         -> do
       hPutStrLn stderr "usage: fee-split-conformance <scratch-directory>"
-      hPutStrLn stderr "       the directory is prepared by offchain/rig/capture-fee-split.sh"
+      hPutStrLn stderr "       the directory is prepared by rig/capture-fee-split.sh"
       exitFailure
 
 -- | Fail loudly, naming the subject, and write NOTHING.
@@ -205,7 +205,7 @@ capture scratch = do
   scratch_there <- doesDirectoryExist scratch
   if not scratch_there
     then die [ "CAPTURE FAIL: the scratch directory " ++ scratch ++ " does not exist."
-             , "              offchain/rig/capture-fee-split.sh makes it, outside the working tree."
+             , "              rig/capture-fee-split.sh makes it, outside the working tree."
              ]
     else pure ()
 

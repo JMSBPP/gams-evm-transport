@@ -7,9 +7,9 @@
 # against digests committed in the pin file. That is why BOTH are run.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
-REF_FILE=offchain/rig/import-ref.txt
+REF_FILE=rig/import-ref.txt
 PIN=.planning/phases/20-deploy-rig-source-of-truth-import/IMPORT-PIN.md
-PATHS=offchain/rig/import-paths.txt
+PATHS=rig/import-paths.txt
 
 # THE SHAPE OF THE ANCHOR, asserted before it is used as a git revision.
 #
@@ -22,7 +22,7 @@ PATHS=offchain/rig/import-paths.txt
 # An EMPTY ref fails loudly (`git diff ""` is a bad revision), so this was PARTIAL, not
 # vacuous. The hole is a ref that RESOLVES but is SELF-REFERENTIAL. MEASURED with `HEAD`
 # written to import-ref.txt:
-#   $ printf 'HEAD\n' > offchain/rig/import-ref.txt && bash offchain/rig/verify-import.sh
+#   $ printf 'HEAD\n' > rig/import-ref.txt && bash rig/verify-import.sh
 #   SC-1 OK: 37 imported paths (the exact set IMPORT-PIN.md pins) content-identical to HEAD
 #            and sha256-matched to IMPORT-PIN.md
 #   EXIT=0
@@ -42,7 +42,7 @@ case "$REF" in
   *) echo "SC-1 FAIL: $REF_FILE does not hold a 40-digit lowercase sha (got '$REF')."
      echo "           A symbolic or relative revision makes check (a) below compare the working"
      echo "           tree to ITSELF and report SC-1 OK. Re-record the ref:"
-     echo "             bash offchain/rig/check-upstream.sh"
+     echo "             bash rig/check-upstream.sh"
      exit 1 ;;
 esac
 
@@ -51,8 +51,8 @@ esac
 # import-paths.txt is simultaneously the git-diff pathspec in (a) AND the sha-loop input in
 # (b), so a line dropped from it removes that file from BOTH checks at once. Nothing noticed:
 # `n` was counted and printed and never compared. MEASURED against a 1-line list --
-#   $ head -1 offchain/rig/import-paths.txt > offchain/rig/import-paths.txt.new && mv ...
-#   $ bash offchain/rig/verify-import.sh
+#   $ head -1 rig/import-paths.txt > rig/import-paths.txt.new && mv ...
+#   $ bash rig/verify-import.sh
 #   SC-1 OK: 1 imported paths content-identical to 2039f278... and sha256-matched
 #   EXIT=0
 # -- 36 of the 37 source-of-truth files verified by nothing, on the ONE rig script CI runs

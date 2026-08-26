@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # capture-gams-conformance.sh -- drive the REAL GAMS 54.1 / CONOPT 4.39
 # toolchain once, out of band, and record what it did in
-# offchain/rig/gams-conformance.json.
+# rig/gams-conformance.json.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -46,7 +46,7 @@
 #
 # USAGE
 #   GAMS_MODEL=/abs/path/to/volume_path.gms \
-#     bash offchain/rig/capture-gams-conformance.sh
+#     bash rig/capture-gams-conformance.sh
 #
 #   GAMS_BIN          the prover. Resolved with `command -v gams` when unset.
 #   GAMS_MODEL        REQUIRED here. volume_path.gms is NOT in this worktree; it
@@ -61,8 +61,8 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-OUT=offchain/rig/gams-conformance.json
-GOLDEN=offchain/rig/volume-path-golden.json
+OUT=rig/gams-conformance.json
+GOLDEN=rig/volume-path-golden.json
 
 CFMM_REQUIRE_GAMS="${CFMM_REQUIRE_GAMS:-1}"
 export CFMM_REQUIRE_GAMS
@@ -147,7 +147,7 @@ trap cleanup EXIT
 
 # --- The probe models ------------------------------------------------------
 # Every one of these lives in $SCRATCH and nowhere else. model/ is the GAMS
-# workstream's tree and this script does not write there; offchain/ would mean a
+# workstream's tree and this script does not write there; writing into the tree would mean a
 # fifth file type for four scans to decide about.
 
 # The 8-line hermetic NLP. It costs 0.008 s and its only job is to make CONOPT

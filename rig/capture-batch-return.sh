@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
 # capture-batch-return.sh -- record REAL (bool, uint256)[] returndata off the
-# live V2 VolOrderManagerMod into offchain/rig/batch-return-capture.json.
+# live V2 VolOrderManagerMod into rig/batch-return-capture.json.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -37,29 +37,29 @@
 # reddens downstream, instead of passing quietly as plausible-looking bytes.
 #
 # USAGE
-#   bash offchain/rig/deploy-rig.sh          # stands the rig up, leaves anvil running
-#   bash offchain/rig/capture-batch-return.sh
+#   bash rig/deploy-rig.sh          # stands the rig up, leaves anvil running
+#   bash rig/capture-batch-return.sh
 # Re-running is reproducible: `jq -S 'del(.generatedAt, .blockNumber)'` over two
 # runs against the same rig is byte-identical.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-MANIFEST="${RIG_MANIFEST:-offchain/rig/rig-manifest.json}"
+MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
 GOLDEN="test/pos_spec/fixtures/vol_order_return_golden.json"
-OUT=offchain/rig/batch-return-capture.json
+OUT=rig/batch-return-capture.json
 # CHAIN-06. This line used to be the authority written out as a literal, so ETH_RPC_URL was
 # accepted by the shell and ignored here -- the capture went to 8545 no matter what the operator
 # exported, and so did the rig it claims to describe. The resolver is sourced, never re-spelled:
-# offchain/rig/endpoint.sh is the ONE place the shell side states the default.
-. offchain/rig/endpoint.sh
+# rig/endpoint.sh is the ONE place the shell side states the default.
+. rig/endpoint.sh
 RPC="$RPC_URL"
 SIG='create_orders(uint256,uint256[])'
 
 # --- Preconditions: fail loudly, never default -----------------------------
 if [ ! -f "$MANIFEST" ]; then
   echo "CAPTURE FAIL: no manifest at $(realpath -m "$MANIFEST")" >&2
-  echo "              stand the rig up first: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              stand the rig up first: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 if [ ! -f "$GOLDEN" ]; then
@@ -72,19 +72,19 @@ MGR=$(jq -r '.contracts.VolOrderManagerMod' "$MANIFEST" | tr 'A-Z' 'a-z')
 CHAIN=$(jq -r '.chainId' "$MANIFEST")
 if [ -z "$MGR" ] || [ "$MGR" = "null" ]; then
   echo "CAPTURE FAIL: $(realpath -m "$MANIFEST") has no contracts.VolOrderManagerMod" >&2
-  echo "              regenerate it: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              regenerate it: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 if [ -z "$CHAIN" ] || [ "$CHAIN" = "null" ]; then
   echo "CAPTURE FAIL: $(realpath -m "$MANIFEST") has no chainId" >&2
-  echo "              regenerate it: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              regenerate it: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 
 # Captured ONCE, before any call, so every case in the artifact shares one block.
 if ! BLOCK=$(cast block-number --rpc-url "$RPC" 2>/dev/null); then
   echo "CAPTURE FAIL: nothing answered eth_blockNumber at $RPC" >&2
-  echo "              stand the rig up first: bash offchain/rig/deploy-rig.sh" >&2
+  echo "              stand the rig up first: bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 GENERATED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -271,7 +271,7 @@ GOLDEN_DIFF=$(jq -s 'map({key: .name, value: {matches_golden, differs_only_in_or
 
 # --- Emit the artifact -----------------------------------------------------
 # WRITE BESIDE, VALIDATE, THEN RENAME. This used to be `jq -n ... > "$OUT"` against
-# offchain/rig/batch-return-capture.json, which `git ls-files` confirms is TRACKED.
+# rig/batch-return-capture.json, which `git ls-files` confirms is TRACKED.
 # The shell creates and truncates the redirect target BEFORE jq runs, so any jq fault
 # -- or a SIGINT between the two -- left committed evidence at zero bytes. That is the
 # rule README.md:248 already states ("Never regenerate with `generator ... > committed-
@@ -279,7 +279,7 @@ GOLDEN_DIFF=$(jq -s 'map({key: .name, value: {matches_golden, differs_only_in_or
 # already follows. This one writer was missed.
 #
 # MEASURED with a jq shim faulting only on this emit (matched on the unique _scope_limit
-# key, every other jq call real): offchain/rig/batch-return-capture.json went 4497 bytes
+# key, every other jq call real): rig/batch-return-capture.json went 4497 bytes
 # -> 0 bytes, sha 64f81425 -> e3b0c442 (the sha256 of nothing).
 jq -n \
   --arg     generatedAt "$GENERATED_AT" \
@@ -295,7 +295,7 @@ jq -n \
      manager: $manager,
      blockNumber: $blockNumber,
      signature: $signature,
-     _provenance: "Every returndata string below was read off a live chain by offchain/rig/capture-batch-return.sh, against the rig stood up by offchain/rig/deploy-rig.sh. The manager address was read from offchain/rig/rig-manifest.json (gitignored) and is copied here because a machine that never stood the rig up has nothing else to check this artifact against. Nothing here was transcribed from a hand-off document.",
+     _provenance: "Every returndata string below was read off a live chain by rig/capture-batch-return.sh, against the rig stood up by rig/deploy-rig.sh. The manager address was read from rig/rig-manifest.json (gitignored) and is copied here because a machine that never stood the rig up has nothing else to check this artifact against. Nothing here was transcribed from a hand-off document.",
      _scope_limit: "These are eth_call results. No state was changed, no transaction was sent and no receipt exists, so the order ids below are the ids the calls WOULD have assigned against the orderCount live at blockNumber -- not ids that exist on chain. Re-running against a rig whose orderCount has advanced legitimately shifts the orderId words and nothing else.",
      _golden_diff: $goldenDiff,
      cases: $cases

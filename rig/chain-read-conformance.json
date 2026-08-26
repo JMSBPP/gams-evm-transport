@@ -79,7 +79,7 @@
       "refused_below_count": 8
     }
   ],
-  "note": "Every value here was produced by offchain/app/ChainReadConformance.hs against the live rig stood up by offchain/rig/deploy-rig.sh. Nothing was transcribed. The pinned readings are made through Chain.Read, which cannot express an unpinned read; the unpinned control is made from the raw transport in that program's own source, where it is visible as a control. The endpoint is deliberately NOT recorded: it is the output of one rule stated once per language (Chain.Endpoint and offchain/rig/endpoint.sh), and an artifact carrying the authority would be a third statement of it inside the endpoint census's blast radius. chainId is recorded instead and is asserted against the manifest's before any write.",
+  "note": "Every value here was produced by app/ChainReadConformance.hs against the live rig stood up by rig/deploy-rig.sh. Nothing was transcribed. The pinned readings are made through Chain.Read, which cannot express an unpinned read; the unpinned control is made from the raw transport in that program's own source, where it is visible as a control. The endpoint is deliberately NOT recorded: it is the output of one rule stated once per language (Chain.Endpoint and rig/endpoint.sh), and an artifact carrying the authority would be a third statement of it inside the endpoint census's blast radius. chainId is recorded instead and is asserted against the manifest's before any write.",
   "poolId": "0x00c35757198030cc0408784a49b5de3ee9c0fad958b0564592e118604b49ab8a",
   "poolManager": "0x5fc8d32690cc91d4c39d9d3abcbd16989f875707",
   "schemaVersion": 1

@@ -9,7 +9,7 @@
 -- @DynamicFeeHook.beforeSwap@ reads the PRE-swap tick out of @PoolManager@ storage and hands it to
 -- @rv_write_timepoint@. So a swap that changes nothing about the price still records whatever tick
 -- slot0 held when it entered — which makes \"cheat slot0, then swap\" a complete price driver with
--- no offchain @writeTimepoint@ call anywhere, exactly as 22-CONTEXT's locked decision requires.
+-- no off-chain @writeTimepoint@ call anywhere, exactly as 22-CONTEXT's locked decision requires.
 --
 -- 'CheatSwap.Types' already holds the pure half (slot derivation, the bit-184 composition, the G4
 -- domain guard) and 'CheatSwap.Encoding' the calldata half. This module is the only place the two
@@ -246,7 +246,7 @@ data CheatSwapStep = CheatSwapStep
   , cs_word_before   :: Integer          -- ^ @extsload@ of the TARGET pool, before the write
   , cs_word_written  :: Integer          -- ^ the composed word
   , cs_swap_router   :: Address
-  , cs_swap_calldata :: HexString        -- ^ the offchain-generated swap artifact
+  , cs_swap_calldata :: HexString        -- ^ the off-chain-generated swap artifact
   , cs_tx_hash       :: HexString
   , cs_status        :: Maybe Quantity
   , cs_e3            :: Maybe TimepointWritten
@@ -434,7 +434,7 @@ read_word to calldata =
 -- | An 'Address' as the @0x@-prefixed lowercase hex string @cast@ expects inside a tuple argument.
 --
 -- Rendered from the bytes rather than via 'show', so the output shape is this module's decision and
--- not a dependency's formatting choice — and so nothing here is a source literal the offchain purge
+-- not a dependency's formatting choice — and so nothing here is a source literal the off-chain purge
 -- could match.
 address_hex :: Address -> String
 address_hex = ("0x" ++) . concatMap byte . BS.unpack . toBytes . toHexString

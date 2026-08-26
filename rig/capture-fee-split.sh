@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------
 # capture-fee-split.sh -- drive the REAL GAMS 54.1 / CONOPT 4.39 toolchain
 # across a boundary-bracketing fee-split grid, out of band, and record what it
-# did in offchain/rig/fee-split-conformance.json.
+# did in rig/fee-split-conformance.json.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -60,7 +60,7 @@
 #
 # USAGE
 #   GAMS_MODEL=/abs/path/to/volume_path.gms \
-#     bash offchain/rig/capture-fee-split.sh
+#     bash rig/capture-fee-split.sh
 #
 #   GAMS_BIN          the prover. Resolved with `command -v gams` when unset.
 #   GAMS_MODEL        REQUIRED here. volume_path.gms is NOT in this worktree; it
@@ -77,8 +77,8 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
-OUT=offchain/rig/fee-split-conformance.json
-SPLITTER=offchain/lib/Fee/Split.hs
+OUT=rig/fee-split-conformance.json
+SPLITTER=lib/Fee/Split.hs
 
 CFMM_REQUIRE_GAMS="${CFMM_REQUIRE_GAMS:-1}"
 export CFMM_REQUIRE_GAMS

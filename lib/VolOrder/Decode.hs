@@ -30,7 +30,7 @@ data OrderCreatedEvent = OrderCreatedEvent
   } deriving (Eq, Show)
 
 -- The E1 topic0 is a PARAMETER, supplied by the caller from the generated pin file
--- offchain/rig/rig-pins.json, under topics."VolOrderCreated". No topic0 literal lives in this
+-- rig/rig-pins.json, under topics."VolOrderCreated". No topic0 literal lives in this
 -- module.
 --
 -- It used to. The constant that sat here was hand-transcribed from a comment naming
@@ -188,7 +188,7 @@ decode_get_order_packed_arg calldata
 -- The SHAPE does not move, which is exactly what makes it assertable.
 --
 -- Failed positions are excluded on purpose: the module answers @(false, 0)@ for them (measured live
--- -- @offchain\/rig\/batch-return-capture.json@, case @N2_success_then_fail@), so folding them in
+-- -- @rig\/batch-return-capture.json@, case @N2_success_then_fail@), so folding them in
 -- would assert the sentinel as if it were an id.
 --
 -- @Right ()@ for an empty batch and for an all-rejected one: neither has a run to be wrong about.
@@ -263,7 +263,7 @@ check_minted_id_run results =
 -- another track's module. That is exactly what happened. It was RESOLVED UPSTREAM in
 -- PR #18 (ref 2039f27, imported by plan 22-01), finding F2:
 -- foundry-scripts/deploy/DeployDynamicFeeHook.s.sol now declares
--- TICK_SPACING = 20, so offchain/rig/rig-manifest.json's .pool.tickSpacing reads
+-- TICK_SPACING = 20, so rig/rig-manifest.json's .pool.tickSpacing reads
 -- 20 and module and pool AGREE. Consequence for anyone reading a stale rig: the
 -- PoolKey hash -- and therefore the poolId -- MOVED with it, so any manifest
 -- recorded before that ref is stale by construction, not merely mislabelled.

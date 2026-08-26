@@ -2,7 +2,7 @@
 -- The store CONTRACT, as types rather than as checks.
 --
 -- Two of this module's guarantees are enforced by the TYPE CHECKER and not by anything in
--- @offchain\/test\/Main.hs@, deliberately. A check can be deleted, renamed, or scoped until it
+-- @test\/Main.hs@, deliberately. A check can be deleted, renamed, or scoped until it
 -- reads nothing; a type cannot be compared away.
 --
 --   * 'Artifact' is the ORACLE -- the @raw@ @bytea@ column. It has 'Eq'. It is the only thing a
@@ -59,8 +59,8 @@ import Crypto.Hash (SHA256 (..), hashWith)
 
 -- | SHA256 as BARE lowercase hex -- no @0x@ prefix, ever.
 --
--- @sc3_literal_purge@'s @purge_pattern@ (@offchain\/test\/Main.hs@) is @0x[0-9a-fA-F]{64}\\b@, so a
--- @0x@-prefixed digest anywhere under @offchain\/@ reddens the suite on sight. 'show' on crypton's
+-- @sc3_literal_purge@'s @purge_pattern@ (@test\/Main.hs@) is @0x[0-9a-fA-F]{64}\\b@, so a
+-- @0x@-prefixed digest anywhere under this tree reddens the suite on sight. 'show' on crypton's
 -- @Digest@ already renders bare lowercase hex, which is also why no @ByteArrayAccess@ conversion
 -- appears here: that conversion is where the recorded 64-vs-32 length skew came from.
 sha256_hex :: BS.ByteString -> String

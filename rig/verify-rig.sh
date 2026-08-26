@@ -3,7 +3,7 @@
 # Phase 20 / plan 20-03 -- SC-2.
 # Exit 0 means every contract answered a read that an empty address could not.
 #
-# It reads EVERY probe target from offchain/rig/rig-manifest.json. There is no
+# It reads EVERY probe target from rig/rig-manifest.json. There is no
 # address literal anywhere in this file, so it cannot drift from the rig: if the
 # manifest is stale the probes fail, they do not silently probe the wrong chain.
 #
@@ -35,16 +35,16 @@ cd "$(git rev-parse --show-toplevel)"
 # The lesson is recorded in the census that now guards this: a pattern matching "names the variable
 # or the authority" does not mean "reaches a chain", and the census terms are the second thing, not
 # the first.
-. offchain/rig/endpoint.sh    # sets RPC_URL, RPC_HOST, RPC_PORT
-MANIFEST="${RIG_MANIFEST:-offchain/rig/rig-manifest.json}"
+. rig/endpoint.sh    # sets RPC_URL, RPC_HOST, RPC_PORT
+MANIFEST="${RIG_MANIFEST:-rig/rig-manifest.json}"
 
 if [ ! -f "$MANIFEST" ]; then
   echo "SC-2 FAIL: manifest not found at $(realpath -m "$MANIFEST")" >&2
-  echo "           bash offchain/rig/deploy-rig.sh writes offchain/rig/rig-manifest.json" >&2
+  echo "           bash rig/deploy-rig.sh writes rig/rig-manifest.json" >&2
   exit 1
 fi
 
-# Every probe target below is read out of offchain/rig/rig-manifest.json with
+# Every probe target below is read out of rig/rig-manifest.json with
 # jq -r. Nothing in this file is a literal address, so there is no second copy
 # of the rig's identity that could go stale.
 m() { jq -r "$1" "$MANIFEST"; }
@@ -71,7 +71,7 @@ if ! jq -e --argjson want "$WANT_CONTRACTS" '(.contracts | keys) == ($want | sor
     + "\n           unexpected : " + (if ($extra   | length) == 0 then "(none)" else ($extra   | join(", ")) end)' \
     "$MANIFEST" >&2
   echo "           A missing key would otherwise delete its own probe below. Re-run:" >&2
-  echo "           bash offchain/rig/deploy-rig.sh" >&2
+  echo "           bash rig/deploy-rig.sh" >&2
   exit 1
 fi
 echo "PASS keyset contracts: exactly the $EXPECT_N expected keys, no more and no fewer"
@@ -174,7 +174,7 @@ for router in PoolSwapTest PoolModifyLiquidityTest; do
   if [ "$RADDR" = "null" ] || [ -z "$RADDR" ]; then
     echo "SC-2 FAIL: $MANIFEST has no contracts.$router -- the InitSwappableRig step did not run," >&2
     echo "           so the pool has NO liquidity and no unlock-callback router. Re-run:" >&2
-    echo "           bash offchain/rig/deploy-rig.sh" >&2
+    echo "           bash rig/deploy-rig.sh" >&2
     exit 1
   fi
   if ! GOT_RPM=$(cast call "$RADDR" "manager()(address)" --rpc-url "$RPC_URL" 2>/dev/null | first_token | lower); then

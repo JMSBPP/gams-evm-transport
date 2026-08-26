@@ -39,7 +39,7 @@
 --
 -- WHY THERE IS NO JSON LIBRARY HERE
 -- ---------------------------------
--- @offchain\/lib\/Loop@ is on the scanned artifact path, and the report line is rendered by hand
+-- @lib\/Loop@ is on the scanned artifact path, and the report line is rendered by hand
 -- for the same reason @Chain.Read.render_fixture_identity@ is: a re-render of numbers by a general
 -- serializer is exactly the failure mode BYTE-03 exists to prevent, and a line that leaves this
 -- workstream and is parsed by CI is a place where a reordered key costs a day.
@@ -152,7 +152,7 @@ data Env = Env
     -- ^ LOOP-05. THE SHUTDOWN REQUEST, AS A QUESTION THE LOOP ASKS RATHER THAN AS AN EVENT THAT
     -- HAPPENS TO IT.
     --
-    -- The producer is @offchain\/app\/LoopMain.hs@: an @IORef Bool@ that a @SIGINT@ handler SETS
+    -- The producer is @app\/LoopMain.hs@: an @IORef Bool@ that a @SIGINT@ handler SETS
     -- and does nothing else with -- no logging, no exit, no IO of any kind. This field is that
     -- ref's reader, and 'run_loop' is the only caller. It is read between blocks and nowhere else;
     -- see 'run_loop'.

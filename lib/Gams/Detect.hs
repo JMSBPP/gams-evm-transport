@@ -17,10 +17,10 @@
 --   * The version flag IS NOT A COMMAND. @gams --version@ is parsed as an input FILENAME; the
 --     process exits 6 and prints a perfectly well-formed banner whose job field is the flag itself,
 --     and the very parser this module reuses refuses it as @Left (WrongJob \"--version\")@. That
---     verdict is committed in @offchain\/rig\/gams-conformance.json@ under
+--     verdict is committed in @rig\/gams-conformance.json@ under
 --     @version_flag\/parser_verdict@, beside the banner line that produced it.
 --   * CONOPT states its own version in ONE place: the output of a run that actually reaches the
---     solver. @offchain\/rig\/gams-conformance.json@'s @conopt_method@ records how it was obtained
+--     solver. @rig\/gams-conformance.json@'s @conopt_method@ records how it was obtained
 --     -- 'Gams.Version.parse_conopt_version' over the stdout of an eight-line hermetic NLP probe
 --     run at @lo=3@, matched on the spaced-letter banner and never on a line position. The two
 --     decoys (the GAMS-side link line and the shared object's soname) both carry the token CONOPT
@@ -100,7 +100,7 @@ import Store.Types (sha256_hex)
 probe_model_name :: FilePath
 probe_model_name = "probe_toolchain.gms"
 
--- | The hermetic NLP, VERBATIM from @offchain\/rig\/capture-gams-conformance.sh@.
+-- | The hermetic NLP, VERBATIM from @rig\/capture-gams-conformance.sh@.
 --
 -- Five lines, one variable, one equation, a bounded box and a closed-form minimum at @x = 1@. It
 -- reads no data, writes no artifact and touches nothing outside the directory it is run in. Its
@@ -117,7 +117,7 @@ probe_model_source =
 
 -- | The log-level the probe is run at, so BOTH banners reach stdout.
 --
--- @lo=3@ is what @offchain\/rig\/gams-conformance.json@'s @conopt_method@ records, and the level
+-- @lo=3@ is what @rig\/gams-conformance.json@'s @conopt_method@ records, and the level
 -- matters: at the production level the solver's own banner goes to the log file in the run
 -- directory instead of to the captured stream.
 probe_log_option :: String

@@ -92,7 +92,7 @@ gams_conformance_env_var = "GAMS_CONFORMANCE"
 -- about the REAL prover is an assertion over a file produced out of band, because @cabal test@ is
 -- GAMS-free by construction and may not shell out to a solver.
 default_gams_conformance_path :: FilePath
-default_gams_conformance_path = "offchain/rig/gams-conformance.json"
+default_gams_conformance_path = "rig/gams-conformance.json"
 
 -- | @GAMS_CONFORMANCE@, defaulting to the committed evidence.
 gams_conformance_path :: IO FilePath
@@ -116,7 +116,7 @@ fee_split_conformance_env_var = "FEE_SPLIT_CONFORMANCE"
 -- @cabal test@ is GAMS-free by construction, so everything this package knows about the real prover
 -- is an assertion over a file produced out of band.
 default_fee_split_conformance_path :: FilePath
-default_fee_split_conformance_path = "offchain/rig/fee-split-conformance.json"
+default_fee_split_conformance_path = "rig/fee-split-conformance.json"
 
 -- | @FEE_SPLIT_CONFORMANCE@, defaulting to the committed evidence.
 fee_split_conformance_path :: IO FilePath

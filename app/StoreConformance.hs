@@ -22,7 +22,7 @@
 --
 -- == THE SECOND DATABASE CLIENT IN THE TREE
 --
--- Until this file, exactly one module under @offchain\/{lib,app,test}@ imported the client. This
+-- Until this file, exactly one module under @{lib,app,test}@ imported the client. This
 -- is the second, deliberately: the corpus's BROKEN path needs an insert whose parameter is a naked
 -- 'BS.ByteString', and putting that in the library would mean shipping the wart so that a test
 -- could observe it. It is confined to 'bare_path_insert' below, it is used for nothing else, and
@@ -124,7 +124,7 @@ import Store.Types
 -- | The real GAMS artifact, copied into THIS workstream with provenance. Reading it across
 -- worktrees at capture time would be the Phase-28 ownership problem arriving early.
 golden_path :: FilePath
-golden_path = "offchain/rig/volume-path-golden.json"
+golden_path = "rig/volume-path-golden.json"
 
 exhibit_model :: String
 exhibit_model = "mev_tax_model_one"

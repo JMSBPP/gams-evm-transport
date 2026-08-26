@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# generate-pins.sh -- regenerate offchain/rig/rig-pins.json from the IMPORTED interface files.
+# generate-pins.sh -- regenerate rig/rig-pins.json from the IMPORTED interface files.
 #
 # WHY THIS FILE EXISTS
 # --------------------
@@ -23,9 +23,9 @@
 # sentence is written into the JSON as `retired._note` so the next reader sees it there too.
 #
 # USAGE
-#   bash offchain/rig/generate-pins.sh          # rewrites offchain/rig/rig-pins.json
-#   RIG_PINS=/tmp/copy.json bash offchain/rig/generate-pins.sh   # writes the copy instead
-# Re-running is idempotent: `git diff --exit-code offchain/rig/rig-pins.json` stays clean.
+#   bash rig/generate-pins.sh          # rewrites rig/rig-pins.json
+#   RIG_PINS=/tmp/copy.json bash rig/generate-pins.sh   # writes the copy instead
+# Re-running is idempotent: `git diff --exit-code rig/rig-pins.json` stays clean.
 #
 set -euo pipefail
 
@@ -38,7 +38,7 @@ ROOT="$PWD"
 # meant something different by the same variable.
 #
 # MEASURED before the fix, with `RIG_PINS=<copy carrying generatedFrom:"SENTINEL" and
-# create_order removed>`: the run printed "== wrote offchain/rig/rig-pins.json ==", the
+# create_order removed>`: the run printed "== wrote rig/rig-pins.json ==", the
 # TRACKED file was the file replaced, and the pointed-at copy still read
 # generatedFrom = SENTINEL afterwards. Dead on the writer, destructive to the tracked
 # artifact -- the same shape as the RIG_MANIFEST defect.
@@ -47,8 +47,8 @@ ROOT="$PWD"
 # exported RIG_PINS for a falsification run having to remember to unexport it before
 # regenerating, and forgetting is the destructive direction. Note what it does NOT redirect:
 # the INPUTS are still the imported interface files and notes/DATA_CONTRACT.md, unconditionally.
-OUT="${RIG_PINS:-offchain/rig/rig-pins.json}"
-REF_FILE="offchain/rig/import-ref.txt"
+OUT="${RIG_PINS:-rig/rig-pins.json}"
+REF_FILE="rig/import-ref.txt"
 DATA_CONTRACT="notes/DATA_CONTRACT.md"
 
 # FLOORS. Without them a parse that matched NOTHING was a successful run: every awk
@@ -67,7 +67,7 @@ MIN_PINS=$((MIN_SELECTORS + MIN_TOPICS))
 
 # WHERE THE STALE E1 TOPIC0 IS READ FROM, AND WHY IT MOVED
 # -------------------------------------------------------
-# Until plan 20-05 this value was parsed out of offchain/lib/VolOrder/Decode.hs, which carried it
+# Until plan 20-05 this value was parsed out of lib/VolOrder/Decode.hs, which carried it
 # as a hardcoded constant. 20-05's literal purge deleted that constant, so this generator now
 # reads it from the file the constant was originally transcribed FROM: the superseded duplicate
 # module src/modules/VolOrderManagerMod.plk (the live module is src/modules/pos_spec/
@@ -126,7 +126,7 @@ IFACES=(
 # disagreement ABORTS. Every other failure mode here -- no such const, no keccak256("...")
 # comment above it, an unterminated one, a signature with whitespace in it -- is a named FATAL
 # too, so this pin cannot be dropped SILENTLY the way a floor exists to prevent. On the consumer
-# side "Shock" is in expected_topic_pins in offchain/test/Main.hs, and
+# side "Shock" is in expected_topic_pins in test/Main.hs, and
 # sc4_pin_surface_is_the_expected_set reddens in its both-directions arm if this block ever
 # stops producing it. That is why MIN_TOPICS is not bumped: the floors above are a floor, and
 # adding a pin is expected not to need an edit there.
@@ -159,7 +159,7 @@ OUT_DIR=$(dirname "$OUT")
 }
 if [ -n "${RIG_PINS:-}" ]; then
   echo "note: RIG_PINS is set -- writing the pin file to $(realpath -m "$OUT")"
-  echo "      offchain/rig/rig-pins.json will NOT be touched. The INPUTS are unchanged."
+  echo "      rig/rig-pins.json will NOT be touched. The INPUTS are unchanged."
 fi
 
 REF="$(tr -d ' \t\n\r' < "$REF_FILE")"
@@ -172,7 +172,7 @@ case "$REF" in
   [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
   *) echo "FATAL: $ROOT/$REF_FILE does not hold a 40-digit lowercase sha (got '$REF')." >&2
      echo "       generatedFrom would carry it into the pin file. Re-record the ref:" >&2
-     echo "         bash offchain/rig/check-upstream.sh" >&2
+     echo "         bash rig/check-upstream.sh" >&2
      exit 1 ;;
 esac
 

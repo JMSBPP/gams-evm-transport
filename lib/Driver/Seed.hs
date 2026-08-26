@@ -3,7 +3,7 @@
 --
 -- == THE GAP THIS CLOSES
 --
--- Until 22-05 @offchain\/app\/Main.hs@ called @System.Random.MWC.createSystemRandom@: seeded from
+-- Until 22-05 @app\/Main.hs@ called @System.Random.MWC.createSystemRandom@: seeded from
 -- the operating system, never recorded, and therefore unreplayable. A finished run could not say
 -- which price path it had taken, so SC-5's reproducibility requirement was satisfied for the RIG
 -- and not for the RUN. Everything here exists to make the run's stream a value that can be printed,

@@ -48,7 +48,7 @@
 -- == WHAT IS DELIBERATELY NOT RECORDED
 --
 -- The endpoint. 27-01 made the resolved URL the output of ONE rule stated once per language, and
--- an artifact carrying the authority would be a third statement of it -- inside @offchain/@, inside
+-- an artifact carrying the authority would be a third statement of it -- inside this tree, inside
 -- the endpoint census's blast radius, and committed. The @chainId@ is recorded instead: it is the
 -- identity that matters for provenance, it is asserted against the manifest's before any write is
 -- attempted, and it says nothing about which socket answered.
@@ -104,10 +104,10 @@ import Rig.Manifest
 -- ---------------------------------------------------------------------------------------------
 
 output_path :: FilePath
-output_path = "offchain/rig/chain-read-conformance.json"
+output_path = "rig/chain-read-conformance.json"
 
 import_ref_path :: FilePath
-import_ref_path = "offchain/rig/import-ref.txt"
+import_ref_path = "rig/import-ref.txt"
 
 -- | The tick written into the pool's @Slot0@ to construct the divergence.
 --
@@ -205,7 +205,7 @@ main = do
   case outcome of
     Left err -> do
       putStrLn ("CAPTURE FAIL: the chain did not answer, or a call failed: " ++ show err)
-      putStrLn "              Stand the rig up first: bash offchain/rig/deploy-rig.sh"
+      putStrLn "              Stand the rig up first: bash rig/deploy-rig.sh"
       exitFailure
     Right doc -> do
       write_json_atomically output_path
@@ -274,7 +274,7 @@ capture _rig manager pool_id manifest_chain_id = do
            ++ " would not change and the capture would record a divergence that does not exist."
            ++ " The pool is already at tick " ++ show divergence_tick ++ ", which means this"
            ++ " capture has already run against this rig. It is NOT idempotent -- it writes"
-           ++ " storage -- so stand a fresh rig up first: bash offchain/rig/deploy-rig.sh")
+           ++ " storage -- so stand a fresh rig up first: bash rig/deploy-rig.sh")
   when (write_head <= b) $
     fail ("chain-read-conformance: the head is " ++ show write_head ++ " and the pinned height is "
            ++ show b ++ ". The write must land STRICTLY ABOVE the pinned block or it lands IN it,"
@@ -408,12 +408,12 @@ state_change_note =
 
 provenance_note :: String
 provenance_note =
-  "Every value here was produced by offchain/app/ChainReadConformance.hs against the live rig stood"
-    ++ " up by offchain/rig/deploy-rig.sh. Nothing was transcribed. The pinned readings are made"
+  "Every value here was produced by app/ChainReadConformance.hs against the live rig stood"
+    ++ " up by rig/deploy-rig.sh. Nothing was transcribed. The pinned readings are made"
     ++ " through Chain.Read, which cannot express an unpinned read; the unpinned control is made"
     ++ " from the raw transport in that program's own source, where it is visible as a control."
     ++ " The endpoint is deliberately NOT recorded: it is the output of one rule stated once per"
-    ++ " language (Chain.Endpoint and offchain/rig/endpoint.sh), and an artifact carrying the"
+    ++ " language (Chain.Endpoint and rig/endpoint.sh), and an artifact carrying the"
     ++ " authority would be a third statement of it inside the endpoint census's blast radius."
     ++ " chainId is recorded instead and is asserted against the manifest's before any write."
 

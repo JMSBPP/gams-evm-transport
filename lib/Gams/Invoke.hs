@@ -12,12 +12,12 @@
 -- tokens.
 --
 -- So the import graph is the enforcement, and what it enforces is a DIRECTORY rather than a count:
--- every importer of this module is under @offchain\/app\/@ and none is under @offchain\/test\/@.
+-- every importer of this module is under @app\/@ and none is under @test\/@.
 -- The importers are @GamsConformance.hs@, the capture executable, and @SpikeEndToEnd.hs@, the
 -- throwaway end-to-end spike, which reaches this module for the two RESOLVERS only -- writing a
 -- second resolver rather than importing this one is the failure this module's own resolution
 -- section exists to prevent. Everything the suite knows about the real toolchain it knows from
--- @offchain\/rig\/gams-conformance.json@, which the capture executable writes out of band.
+-- @rig\/gams-conformance.json@, which the capture executable writes out of band.
 --
 -- == RESOLUTION FAILS LOUDLY, AND IT FAILS BY NAME
 --
@@ -154,7 +154,7 @@ resolve_gams_model = do
 -- | @(sha256 of the file, its size in bytes)@ -- the two facts GAMS-03 wants recorded about the
 -- executable, because they are what a wrapper script or a @PATH@ shadow cannot lie about.
 --
--- The digest is BARE lowercase hex. A @0x@-prefixed 64-hex literal anywhere under @offchain\/@
+-- The digest is BARE lowercase hex. A @0x@-prefixed 64-hex literal anywhere under this tree
 -- reddens @sc3_literal_purge@, and this value is written into a committed artifact.
 --
 -- Both numbers are MACHINE-SPECIFIC and neither is ever pinned in Haskell: the suite asserts their

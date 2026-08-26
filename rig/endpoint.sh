@@ -5,7 +5,7 @@
 # SOURCED, never executed:
 #
 #     cd "$(git rev-parse --show-toplevel)"
-#     . offchain/rig/endpoint.sh
+#     . rig/endpoint.sh
 #
 # On return it has set, and marked readonly-by-convention:
 #
@@ -13,7 +13,7 @@
 #     RPC_HOST   its host, for `anvil --host`
 #     RPC_PORT   its port, for `anvil --port` and for owning the listener by port
 #
-# Its Haskell twin is offchain/lib/Chain/Endpoint.hs. That module states the default once for the
+# Its Haskell twin is lib/Chain/Endpoint.hs. That module states the default once for the
 # Haskell tree and this file states it once for the three bash sites; bash cannot import a Haskell
 # module, so the value is written down in two languages and the SUITE ASSERTS THE TWO ARE
 # BYTE-EQUAL (the_producer_and_the_consumers_bind_one_endpoint). A duplication a check compares is

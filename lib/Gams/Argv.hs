@@ -197,7 +197,7 @@ render_argv shock = do
 
 -- | THE EIGHT REFUSALS ONLY -- and it exists for EXACTLY ONE CONSUMER.
 --
--- That consumer is @offchain\/app\/FeeSplitConformance.hs@, the out-of-band capture that drives the
+-- That consumer is @app\/FeeSplitConformance.hs@, the out-of-band capture that drives the
 -- real prover at points the ninth refusal rejects. It has to: the whole content of that capture is
 -- what GAMS does ONE PIP BELOW each fee pair's admissibility boundary, and 'render_argv' cannot
 -- build a command line for such a shock. That is the point of the ninth refusal and it is not being
@@ -208,7 +208,7 @@ render_argv shock = do
 -- subprocess\" is a property of the import graph, not of a comment: a second consumer is how it
 -- quietly stops being true, because nothing about the second one would look wrong. The suite
 -- therefore asserts the CONSUMER SET in both directions -- 'the_ungated_renderer_has_exactly_one_consumer'
--- scans @offchain\/@ and requires exactly this module and that file. A one-directional assertion
+-- scans this tree and requires exactly this module and that file. A one-directional assertion
 -- passes on a second consumer appearing, which is why it is a set.
 --
 -- Production callers -- including 'Gams.Run.run_prover', which is the only path to an @execve@ --

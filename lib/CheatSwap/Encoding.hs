@@ -4,7 +4,7 @@
 -- Both are built by shelling to @cast calldata@ with the SIGNATURE STRING, exactly as
 -- @PriceSetter.Encoding@ already does, and for the same two reasons. First, @cast@ is the
 -- independent encoder: a selector computed here would be this repo agreeing with itself. Second,
--- the offchain literal purge (@sc3_literal_purge@) greps @offchain\/**\/*.hs@ for
+-- the off-chain literal purge (@sc3_literal_purge@) greps @**\/*.hs@ for
 -- @0x[0-9a-fA-F]{8}\\b@, so writing either selector down is a suite failure by construction. For
 -- the record and NOT in any source file, the two selectors @cast sig@ reports are the ones
 -- @driv01_swap_calldata_shape@ recomputes from 'swap_signature' at test time.

@@ -57,6 +57,6 @@ data Store = Store
     -- and does not call it. That is not a hole -- a typeclass would have exactly the same property,
     -- since the method would be in scope wherever the constraint was -- and the standing assertion
     -- that the solve path does not call it is a source scan over @Store.Cache@ in
-    -- @offchain\/test\/Main.hs@, not anything in this type. What the type CAN do is refuse the
+    -- @test\/Main.hs@, not anything in this type. What the type CAN do is refuse the
     -- unscoped call, and it does.
   }

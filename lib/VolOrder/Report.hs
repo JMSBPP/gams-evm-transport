@@ -10,7 +10,7 @@ import Network.Ethereum.Api.Types (Change (..), Quantity, TxReceipt (..))
 import VolOrder.Decode (OrderCreatedEvent (..), decode_order_created)
 
 -- The first argument is the pinned E1 topic0 -- the topics."VolOrderCreated" entry of the
--- generated offchain/rig/rig-pins.json -- threaded straight through to the decoder. This module
+-- generated rig/rig-pins.json -- threaded straight through to the decoder. This module
 -- holds no topic literal of its own.
 --
 -- The second is the address E1 must have been emitted FROM, and the filter it feeds is MANDATORY

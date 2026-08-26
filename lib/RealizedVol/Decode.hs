@@ -1,7 +1,7 @@
 -- | THIS MODULE READS LOGS AND NOTHING ELSE.
 --
 -- Phase 22's CONTEXT records a locked user decision: there is no @RealizedVol.*@ CLIENT. Nothing
--- offchain may call @writeTimepoint@ — \"by setting prices and moving across time the timepoints
+-- off-chain may call @writeTimepoint@ — \"by setting prices and moving across time the timepoints
 -- will write themselves on the Hook [...] the only thing a client can do is query the DB api\".
 -- @DynamicFeeHook.beforeSwap@ calls @rv_write_timepoint@ on the pre-swap tick, so DRIV-01 is
 -- satisfied by making the hook FIRE, never by calling the vol module.
@@ -33,7 +33,7 @@
 -- acquires no IO dependency, stays testable from pure values, and cannot go stale the way a
 -- transcribed topic0 silently does (a wrong topic0 does not look wrong — it simply matches no log,
 -- so decoding \"succeeds\" at reporting nothing). The caller supplies them from the generated pin
--- file @offchain\/rig\/rig-pins.json@ and from the manifest.
+-- file @rig\/rig-pins.json@ and from the manifest.
 module RealizedVol.Decode
   ( TimepointWritten(..)
   , FeeApplied(..)

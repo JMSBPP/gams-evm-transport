@@ -9,12 +9,12 @@
 -- LOOP-01 proofs live in the suite, driven against synthetic logs and @Store.Memory@; what is here
 -- is the composition those proofs cannot exercise.
 --
--- WHY THE RESOLVING MODULE IS IMPORTED HERE AND NEVER UNDER @offchain\/lib\/Loop\/@
+-- WHY THE RESOLVING MODULE IS IMPORTED HERE AND NEVER UNDER @lib\/Loop\/@
 -- --------------------------------------------------------------------------------
 -- That is what keeps S2 closed. 28-01's ruling: resolution is a STARTUP precondition, so the
 -- solver seam takes already-resolved paths and no @AbortReason@ has to lie about a startup fact.
 -- The structural property is the DIRECTORY -- every importer of the resolving module is under
--- @offchain\/app\/@ -- and @grep -rc@ over @offchain\/lib\/Loop\/@ reports 0 for every file there.
+-- @app\/@ -- and @grep -rc@ over @lib\/Loop\/@ reports 0 for every file there.
 --
 -- EVERY EXIT IS A CODE FROM ONE TABLE
 -- ----------------------------------
@@ -96,7 +96,7 @@ shock_emitter_contract = "ShockWriter"
 --
 -- Never transcribed and never read from a pin file: the decoder and the filter must agree about
 -- which event this is, and the only way to guarantee that is for both to derive it from the one
--- string. There is no @Shock@ entry in @offchain\/rig\/rig-pins.json@ today for the same reason
+-- string. There is no @Shock@ entry in @rig\/rig-pins.json@ today for the same reason
 -- there is no emitter -- CHAIN-01.
 shock_topic0 :: Integer
 shock_topic0 = be_integer (keccak256 (C8.pack shock_signature))
@@ -149,7 +149,7 @@ main = do
   putStrLn ("ENDPOINT  " ++ endpoint)
   putStrLn ("SOURCE    " ++ source_label source)
 
-  -- (2) THE PROVER PATHS. Here, in app/, and never in offchain/lib/Loop/.
+  -- (2) THE PROVER PATHS. Here, in app/, and never in lib/Loop/.
   binary <- precondition_either (ProverPathsUnresolvable . show) =<< resolve_gams_bin
   model  <- precondition_either (ProverPathsUnresolvable . show) =<< resolve_gams_model
   putStrLn ("TOOLCHAIN " ++ binary)

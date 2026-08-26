@@ -2,7 +2,7 @@
 
 -- |
 -- The ONLY module in this tree that talks to a database, and the only one permitted to import the
--- client or the migration runner. Everything else in @offchain\/lib\/Store\/@ is server-free by
+-- client or the migration runner. Everything else in @lib\/Store\/@ is server-free by
 -- construction, which is what keeps @cabal test@ free of a socket without a single conditional.
 --
 -- THREE WARTS ARE CLOSED HERE, AND ALL THREE ARE SILENT AT COMPILE TIME.
