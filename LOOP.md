@@ -1,6 +1,7 @@
 # `loop` — the resident VolumePath bridge: operator's manual
 
-**Location:** `LOOP.md` — next to the code it describes (`docs/` is gitignored on this branch).
+**Location:** `LOOP.md` — next to the code it describes. See `README.md` for the repo-level
+overview; `docs/superpowers/` (specs and plans) is tracked, not gitignored.
 **Milestone:** v6.0 (rpc_api workstream), Phases 23–28. **Status:** every component built and
 verified; the in-process composition proven chain-free; the live end-to-end run **has never
 executed** and says so (see §7).
