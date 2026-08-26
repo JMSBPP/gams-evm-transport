@@ -26,9 +26,12 @@ empty (see report), and no failure below names an incorrect `lib/app/rig/test` p
 
 ## monorepo-contract (Task 4) — 50
 
-Every one of these reads a file that lives in the sibling `cfmm-numopt` / GAMS-model tree
-(`src/interfaces/...`, `src/models/...`), a Solidity-testing-track fixture under
-`test/pos_spec/...`, or the `origin/develop` git ref this clone does not carry:
+Every one of these reads a file that lives in the sibling MONOREPO checkout, resolved under
+`PLANK_ROOT` (`src/interfaces/...`, `src/models/...` -- corrected here at Task 4: these are
+monorepo paths, not `cfmm-numopt` / GAMS-model paths; `cfmm-numopt` is this repository's own
+GAMS-only numerical layer and carries no `src/interfaces` tree at all), a Solidity-testing-track
+fixture under `test/pos_spec/...` (also monorepo-resolved), or the `origin/develop` git ref this
+clone does not carry:
 
 ```
 sc4_multiline_timepoint_written
@@ -189,3 +192,41 @@ belongs with the rig/foundry tier, but its message never names `rig-manifest.jso
 | **total FAILED** | **64** |
 
 168 + 64 = 232, matching `cabal test`'s own summary line.
+
+## monorepo-contract drift (Task 4, Step 4) — 1
+
+Measured 2026-08-26 running `PLANK_ROOT="$S/plank" cabal test` against the dedicated
+`origin/develop` clone at `d2b1c51` (Task 0 Step 7's clean checkout). All 50 monorepo-contract
+checks and all 10 rig/foundry checks ran for real (zero `SKIPPED (PLANK_ROOT` lines; `RIG_TESTS`
+was not set, so the 10 rig/foundry checks plus `sentinel_falsification_harness` still print
+`SKIPPED (RIG_TESTS unset)`, which is expected and unrelated to this finding). 49 of the 50
+monorepo-contract checks PASSED against real content. One FAILED, and its message names content,
+not a path -- so per the brief this is recorded here rather than gated away:
+
+**`the_default_fixture_path_is_the_consumers_own_constant`**
+> "the extractor found 0 declarations of VOLUME_PATH_JSON in
+> test/models/mev_tax_model_one/AlgebraIntegralMevTaxModelOneShocks.t.sol on origin/develop,
+> expected exactly 1: []."
+
+Evidence, read directly off the clone: `git -C "$S/plank" show
+origin/develop:test/models/mev_tax_model_one/AlgebraIntegralMevTaxModelOneShocks.t.sol` no longer
+declares `VOLUME_PATH_JSON` at all -- the file instead carries the comment "The VolumePath replay
+moved to the v4 file MevTaxVolumePathV4.t.sol (the fixture is a v4 DynamicFeeHook pool;
+@cryptoalgebra 0.8.20 and v4-core 0.8.26 cannot share this graph)". The constant moved with the
+replay: `test/models/mev_tax_model_one/MevTaxVolumePathV4.t.sol` on `origin/develop` declares
+`string constant FIXTURE = "test/models/mev_tax_model_one/fixtures/volume_path.json";` -- same
+STRING VALUE, new NAME (`VOLUME_PATH_JSON` -> `FIXTURE`) and new FILE
+(`AlgebraIntegralMevTaxModelOneShocks.t.sol` -> `MevTaxVolumePathV4.t.sol`). This side's own
+`Loop.Config.default_fixture_path` (`default_fixture_dir </> fixture_file_name` =
+`"test/models/mev_tax_model_one/fixtures/volume_path.json"`) still agrees with the VALUE, so
+LOOP-04's byte-equality contract is not actually violated -- but `consumer_test_path` and
+`consumer_path_constant` in `test/Main.hs` (28-04) still name the OLD file and the OLD constant
+name, so the check that is supposed to catch exactly this kind of drift can no longer find its
+own subject. This is a real, measured monorepo-contract drift, not a bug introduced by Task 4's
+gating: the check was gated (gains `PLANK_ROOT`), ran for real against the live clone, and
+reddened on its own evidence. Per the brief ("If one fails with a message about content (not a
+path), it is a genuine contract drift -- record it in the partition file; do not gate it away"),
+`the_default_fixture_path_is_the_consumers_own_constant` is left exactly as it is: RED against a
+real `PLANK_ROOT`, GREEN (skipped) bare. Re-verifying and re-pointing `consumer_test_path` /
+`consumer_path_constant` at `MevTaxVolumePathV4.t.sol` / `FIXTURE` is follow-up work outside Task
+4's scope (the check's own assertion, not its gating, is what would need to change).

@@ -22,7 +22,7 @@
 module Main (main) where
 
 import Control.Exception (IOException, finally, throwIO, try)
-import Control.Monad (foldM, replicateM)
+import Control.Monad (filterM, foldM, replicateM)
 import Crypto.Ethereum.Utils (keccak256)
 -- MD5 only, and only for the migration freshness oracle: @postgresql-migration@ stores an md5 of
 -- each script and the capture records the same digest, so the freshness comparison has to speak
@@ -784,11 +784,14 @@ truth_for name =
     (row : _) -> Right row
     []        -> Left ("no ground-truth row for " ++ name)
 
-realized_vol_iface :: FilePath
-realized_vol_iface = "src/interfaces/market_state_measurements/RealizedVolatilityInterface.plk"
+-- | Resolved under 'Loop.Config.plank_root' -- the MONOREPO -- not under @cfmm-numopt@: this is
+-- a Solidity/EVM interface file the vol-order and fee-hook modules declare, not a GAMS artifact.
+realized_vol_iface :: FilePath -> FilePath
+realized_vol_iface root = root </> "src/interfaces/market_state_measurements/RealizedVolatilityInterface.plk"
 
-dynamic_fee_hook_iface :: FilePath
-dynamic_fee_hook_iface = "src/interfaces/protocol_integrations/DynamicFeeHookInterface.plk"
+-- | Resolved under 'Loop.Config.plank_root'; see 'realized_vol_iface'.
+dynamic_fee_hook_iface :: FilePath -> FilePath
+dynamic_fee_hook_iface root = root </> "src/interfaces/protocol_integrations/DynamicFeeHookInterface.plk"
 
 -- ---------------------------------------------------------------------------------------------
 -- Check plumbing
@@ -813,6 +816,32 @@ pure_check name result = Check name (pure result)
 expect :: Bool -> String -> Either String ()
 expect True _    = Right ()
 expect False why = Left why
+
+-- | A check that needs something this repository does not carry: the monorepo checkout
+-- (@PLANK_ROOT@) or a standing rig + Postgres (@RIG_TESTS=1@). When the need is unmet the
+-- check is REPLACED by one that prints its own name with the reason and passes -- a printed
+-- skip, never a silent one. When met, the real check runs with the resolved value. The name
+-- is passed explicitly so the skip line and the real check agree on it by construction.
+gated :: String -> String -> Maybe a -> (a -> Check) -> Check
+gated name reason Nothing _ =
+  Check name (putStrLn ("SKIPPED (" ++ reason ++ "): " ++ name) >> pure (Right ()))
+gated _ _ (Just a) mk = mk a
+
+rig_tests_env_var :: String
+rig_tests_env_var = "RIG_TESTS"
+
+rig_tests_enabled :: IO Bool
+rig_tests_enabled = (== Just "1") <$> lookupEnv rig_tests_env_var
+
+-- | 'repo_roots' filtered to what currently exists on disk. GNU @grep -r@ exits 2 -- "No such
+-- file or directory" -- for an absent path ARGUMENT (as opposed to a path it walks into and
+-- finds empty), so a root this checkout does not yet carry (@README.md@, until Task 7) aborts a
+-- scan handed the raw list outright, rather than simply contributing no matches. 'walk_files'
+-- already tolerates an absent root because it is called on ONE root at a time and checks
+-- 'doesPathExist' before recursing; a bare grep invocation has no such guard, so the callers that
+-- hand @repo_roots@ straight to @grep -r@ need this instead.
+existing_roots :: [FilePath] -> IO [FilePath]
+existing_roots = filterM doesPathExist
 
 -- ---------------------------------------------------------------------------------------------
 -- SC-4: pin recomputation
@@ -984,20 +1013,26 @@ sc4_pin_surface_is_the_expected_set pins =
     render [] = "(none)"
     render xs = intercalate ", " xs
 
--- | One check per pin. The signature comes from the FILE the pin names, never from this module.
-per_pin_checks :: RigPins -> [Check]
-per_pin_checks pins =
-  [ pin_check "selector" selector_of name entry
+-- | One check per pin, GATED at this generator: every pin's source file
+-- ('Rig.Manifest.pin_source') is a path resolved under the monorepo, so the reader every
+-- generated check shares is root-dependent. Each generated 'Check' still carries and prints its
+-- own @sc4_pin_selector_*@ / @sc4_pin_topic0_*@ name through 'gated' -- a per-pin SKIPPED line,
+-- not one line standing in for the group -- so 'PLANK_ROOT' unset shrinks nothing silently.
+per_pin_checks :: Maybe FilePath -> RigPins -> [Check]
+per_pin_checks root pins =
+  [ gated ("sc4_pin_selector_" ++ T.unpack name) "PLANK_ROOT unset" root
+      (\r -> pin_check r "selector" selector_of name entry)
   | (name, entry) <- Map.toList (pin_selectors pins)
   ]
-    ++ [ pin_check "topic0" topic0_of name entry
+    ++ [ gated ("sc4_pin_topic0_" ++ T.unpack name) "PLANK_ROOT unset" root
+           (\r -> pin_check r "topic0" topic0_of name entry)
        | (name, entry) <- Map.toList (pin_topics pins)
        ]
 
-pin_check :: String -> (String -> BS.ByteString) -> T.Text -> PinEntry -> Check
-pin_check kind hash_of name entry =
+pin_check :: FilePath -> String -> (String -> BS.ByteString) -> T.Text -> PinEntry -> Check
+pin_check root kind hash_of name entry =
   Check ("sc4_pin_" ++ kind ++ "_" ++ T.unpack name) . guarded $ do
-    let src = T.unpack (pin_source entry)
+    let src = root </> T.unpack (pin_source entry)
     contents <- readFile src
     pure $ case verify_pin hash_of (T.unpack name) (T.unpack (pin_value entry)) contents of
       Right () -> Right ()
@@ -1014,10 +1049,10 @@ sc4_ground_truth_encoder = pure_check "sc4_ground_truth_encoder" $
 
 -- | The wrapped signature. Research 7.3: a truncating parser yields a valid 32-byte hash that
 -- simply never matches, so this case is the only thing between a broken parser and a green suite.
-sc4_multiline_timepoint_written :: Check
-sc4_multiline_timepoint_written =
+sc4_multiline_timepoint_written :: FilePath -> Check
+sc4_multiline_timepoint_written root =
   Check "sc4_multiline_timepoint_written" . guarded $ do
-    contents <- readFile realized_vol_iface
+    contents <- readFile (realized_vol_iface root)
     pure $ do
       (expected_sig, expected_topic) <- truth_for "TimepointWritten"
       parsed <- signature_for "TimepointWritten" (signatures_in (lines contents))
@@ -1030,11 +1065,11 @@ sc4_multiline_timepoint_written =
 
 -- | The SAME name in a file where the comment is ALREADY canonical. Agreement between the
 -- decorated and the canonical shape is what makes idempotency a measurement, not a claim.
-sc4_idempotent_canonical_form :: Check
-sc4_idempotent_canonical_form =
+sc4_idempotent_canonical_form :: FilePath -> Check
+sc4_idempotent_canonical_form root =
   Check "sc4_idempotent_canonical_form" . guarded $ do
-    canonical_side <- readFile dynamic_fee_hook_iface
-    decorated_side <- readFile realized_vol_iface
+    canonical_side <- readFile (dynamic_fee_hook_iface root)
+    decorated_side <- readFile (realized_vol_iface root)
     pure $ do
       (expected_sig, expected_topic) <- truth_for "TimepointWritten"
       already <- signature_for "TimepointWritten" (signatures_in (lines canonical_side))
@@ -1051,8 +1086,8 @@ sc4_idempotent_canonical_form =
 -- @retired@ block -- never typed here) as VolOrderCreated's pinned value and require it to report
 -- a mismatch. If this check does not observe a failure, the checker is not checking anything and
 -- every green above is worthless.
-sc4_falsifiable :: RigPins -> Check
-sc4_falsifiable pins =
+sc4_falsifiable :: FilePath -> RigPins -> Check
+sc4_falsifiable root pins =
   Check "sc4_falsifiable" . guarded $
     case ( Map.lookup "VolOrderCreated" (pin_topics pins)
          , Map.lookup "topic_order_created_stale" (pin_retired pins)
@@ -1061,7 +1096,7 @@ sc4_falsifiable pins =
       (_, Nothing) ->
         pure (Left "rig-pins.json has no retired.topic_order_created_stale to inject")
       (Just entry, Just stale_text) -> do
-        contents <- readFile (T.unpack (pin_source entry))
+        contents <- readFile (root </> T.unpack (pin_source entry))
         let stale = T.unpack stale_text
         pure $ case verify_pin topic0_of "VolOrderCreated" stale contents of
           Left _ -> Right ()
@@ -1611,8 +1646,9 @@ sc3_literal_purge = Check "sc3_literal_purge" . guarded $ do
 -- field and that bits >= 128 must be zero. Both sentences are false of V2.
 -- ---------------------------------------------------------------------------------------------
 
-volorder_iface :: FilePath
-volorder_iface = "src/interfaces/pos_spec/VolOrderManagerInterface.plk"
+-- | Resolved under 'Loop.Config.plank_root'; see 'realized_vol_iface'.
+volorder_iface :: FilePath -> FilePath
+volorder_iface root = root </> "src/interfaces/pos_spec/VolOrderManagerInterface.plk"
 
 -- | The four field values every V2 layout check is built from. DELIBERATELY FOUR DISTINCT
 -- NUMBERS, so no transposition of two arguments or two fields can pass unnoticed.
@@ -1711,10 +1747,10 @@ rpin_v2_layout_behavior = pure_check "rpin_v2_layout_behavior" $ do
 -- string PARSED OUT OF the interface file, the leading four bytes the encoder actually emits, and
 -- the generated pin. Nothing here is transcribed -- a transcription would prove only that the test
 -- agrees with itself.
-rpin01_encoder_selector_is_recomputed :: RigPins -> Check
-rpin01_encoder_selector_is_recomputed pins =
+rpin01_encoder_selector_is_recomputed :: FilePath -> RigPins -> Check
+rpin01_encoder_selector_is_recomputed root pins =
   Check "rpin01_encoder_selector_is_recomputed" . guarded $ do
-    contents <- readFile volorder_iface
+    contents <- readFile (volorder_iface root)
     calldata <- encode_create_order rpin_base_order
     pure $ do
       (truth_sig, truth_value) <- truth_for "create_order"
@@ -1739,7 +1775,7 @@ rpin01_encoder_selector_is_recomputed pins =
           in expect (pinned == "0x" ++ recomputed)
                (intercalate "\n"
                  [ "the generated pin and the recomputed selector disagree -- either the pin file"
-                     ++ " or " ++ volorder_iface ++ " is stale"
+                     ++ " or " ++ volorder_iface root ++ " is stale"
                  , "      emitted by the encoder : " ++ emitted
                  , "      recomputed (keccak256) : " ++ recomputed
                  , "      pinned in " ++ pins_file_label ++ " : " ++ pinned
@@ -2066,9 +2102,9 @@ rpin_base_order_id = 7
 -- four-word log decodes, and the retired three-topic \/ five-word shape does not. Both assertions
 -- are expressible against the pre-Phase-21 record, which is what makes this an ASSERTION-level
 -- RED rather than a compile error.
-rpin_e1_v2_decode_behavior :: Check
-rpin_e1_v2_decode_behavior = Check "rpin_e1_v2_decode_behavior" . guarded $ do
-  contents <- readFile volorder_iface
+rpin_e1_v2_decode_behavior :: FilePath -> Check
+rpin_e1_v2_decode_behavior root = Check "rpin_e1_v2_decode_behavior" . guarded $ do
+  contents <- readFile (volorder_iface root)
   pure $ do
     t0 <- e1_topic0_from contents
     let v2_log =
@@ -2113,9 +2149,9 @@ retired_value pins name =
 -- required to agree with THAT -- not the other way round. A pin file is an artifact; the @.plk@
 -- declaration is the source of truth, so the arrow of evidence has to point from the file to the
 -- pin. Ground truth is reused rather than a new literal introduced.
-rpin04_topic0_is_recomputed :: RigPins -> Check
-rpin04_topic0_is_recomputed pins = Check "rpin04_topic0_is_recomputed" . guarded $ do
-  contents <- readFile volorder_iface
+rpin04_topic0_is_recomputed :: FilePath -> RigPins -> Check
+rpin04_topic0_is_recomputed root pins = Check "rpin04_topic0_is_recomputed" . guarded $ do
+  contents <- readFile (volorder_iface root)
   pure $ do
     (truth_sig, truth_value) <- truth_for "VolOrderCreated"
     sig <- signature_for "VolOrderCreated" (signatures_in (lines contents))
@@ -2134,7 +2170,7 @@ rpin04_topic0_is_recomputed pins = Check "rpin04_topic0_is_recomputed" . guarded
         in expect (pinned == "0x" ++ recomputed)
              (intercalate "\n"
                [ "the generated pin and the recomputed topic0 disagree -- either the pin file or "
-                   ++ volorder_iface ++ " is stale"
+                   ++ volorder_iface root ++ " is stale"
                , "      signature parsed from the file : " ++ sig
                , "      recomputed (keccak256)         : 0x" ++ recomputed
                , "      pinned in " ++ pins_file_label ++ "  : " ++ pinned
@@ -2145,9 +2181,9 @@ rpin04_topic0_is_recomputed pins = Check "rpin04_topic0_is_recomputed" . guarded
 -- The four data values are deliberately DISTINCT, so no transposition of two words can pass, and
 -- @orderId@ is asserted to come from the INDEXED TOPIC by requiring that no data word carries its
 -- value -- otherwise a decoder reading it out of the payload would look identical here.
-rpin04_positive_v2_decode :: Check
-rpin04_positive_v2_decode = Check "rpin04_positive_v2_decode" . guarded $ do
-  contents <- readFile volorder_iface
+rpin04_positive_v2_decode :: FilePath -> Check
+rpin04_positive_v2_decode root = Check "rpin04_positive_v2_decode" . guarded $ do
+  contents <- readFile (volorder_iface root)
   pure $ do
     t0 <- e1_topic0_from contents
     let data_values = [rpin_base_strike, rpin_base_width, rpin_base_skew, rpin_base_vega]
@@ -2190,9 +2226,9 @@ rpin04_positive_v2_decode = Check "rpin04_positive_v2_decode" . guarded $ do
 -- (2) A two-topic log with only 96 bytes of data -- without the length guard, @data_word 3@ reads
 --     off the end and returns a silent, plausible @targetVega = 0@.
 -- (3) A well-formed v2 log decoded with the WRONG expected topic0.
-rpin04_v1_shape_is_rejected :: Check
-rpin04_v1_shape_is_rejected = Check "rpin04_v1_shape_is_rejected" . guarded $ do
-  contents <- readFile volorder_iface
+rpin04_v1_shape_is_rejected :: FilePath -> Check
+rpin04_v1_shape_is_rejected root = Check "rpin04_v1_shape_is_rejected" . guarded $ do
+  contents <- readFile (volorder_iface root)
   pure $ do
     t0 <- e1_topic0_from contents
     let log_v1 =
@@ -2222,10 +2258,10 @@ rpin04_v1_shape_is_rejected = Check "rpin04_v1_shape_is_rejected" . guarded $ do
 -- COMPARISON rather than from a malformed fixture: the very same log decodes successfully when
 -- the retired value is supplied as the expected topic0. Without that second half, a fixture that
 -- was simply broken would produce the same green.
-rpin04_retired_topic0s_are_rejected :: RigPins -> Check
-rpin04_retired_topic0s_are_rejected pins =
+rpin04_retired_topic0s_are_rejected :: FilePath -> RigPins -> Check
+rpin04_retired_topic0s_are_rejected root pins =
   Check "rpin04_retired_topic0s_are_rejected" . guarded $ do
-    contents <- readFile volorder_iface
+    contents <- readFile (volorder_iface root)
     pure $ do
       live <- e1_topic0_from contents
       mapM_ (one live) ["topic_vol_order_created_v1", "topic_order_created_stale"]
@@ -2628,8 +2664,10 @@ capture_file = "rig/batch-return-capture.json"
 -- rather than this repo agreeing with itself. Its inputs are 3-field and predate V2, but the
 -- return encoding is a function of @(success, id)@ only, so the @expected@ strings stay valid
 -- across the version change.
-golden_file :: FilePath
-golden_file = "test/pos_spec/fixtures/vol_order_return_golden.json"
+-- | Resolved under 'Loop.Config.plank_root': a Solidity-testing-track fixture, not a GAMS
+-- artifact and not part of this repository's own @test/@ tree.
+golden_file :: FilePath -> FilePath
+golden_file root = root </> "test/pos_spec/fixtures/vol_order_return_golden.json"
 
 capture_command :: String
 capture_command = "bash rig/capture-batch-return.sh"
@@ -2820,11 +2858,11 @@ rpin05_capture_is_present_and_fresh = Check "rpin05_capture_is_present_and_fresh
 -- is a live-vs-golden ENCODING disagreement, which the requirement says to REPORT, so it fails
 -- here naming the index and both words. The golden is not adjusted and the check is not relaxed;
 -- @test\/@ belongs to the Solidity-testing track in any case.
-rpin05_live_bytes_match_the_external_golden :: Check
-rpin05_live_bytes_match_the_external_golden =
+rpin05_live_bytes_match_the_external_golden :: FilePath -> Check
+rpin05_live_bytes_match_the_external_golden root =
   Check "rpin05_live_bytes_match_the_external_golden" . guarded $ do
     loaded_capture <- read_json_file capture_file ("produce it with: " ++ capture_command)
-    loaded_golden  <- read_json_file golden_file golden_advice
+    loaded_golden  <- read_json_file (golden_file root) golden_advice
     pure $ do
       capture <- loaded_capture
       golden  <- loaded_golden
@@ -3088,10 +3126,10 @@ address_of_byte b =
 -- the decoded id to @so_readback_id@ and reads it back out of the MANAGER's storage, where
 -- @getOrderPacked@ has no bounds check and answers the 0 sentinel -- a fabricated readback written
 -- into the committed artifact.
-rpin04_e1_is_filtered_on_the_emitter :: Check
-rpin04_e1_is_filtered_on_the_emitter =
+rpin04_e1_is_filtered_on_the_emitter :: FilePath -> Check
+rpin04_e1_is_filtered_on_the_emitter root =
   Check "rpin04_e1_is_filtered_on_the_emitter" . guarded $ do
-    contents <- readFile volorder_iface
+    contents <- readFile (volorder_iface root)
     pure $ do
       t0 <- e1_topic0_from contents
       let manager  = address_of_byte 17
@@ -3253,10 +3291,10 @@ driv01_pool_id_hex = "c26d0c664c1503d15da31243604d1904295ccb87658aa0f62ff9966f20
 -- assertion pins a VALUE (@tw_avg_tick == -200@), never a relation (@tw_avg_tick < 0@) -- 21-03
 -- and 21-04 each measured an inequality-shaped check staying GREEN under a value-breaking
 -- mutant.
-driv01_e3_decode_behavior :: Check
-driv01_e3_decode_behavior = Check "driv01_e3_decode_behavior" . guarded $ do
-  rv_contents   <- readFile realized_vol_iface
-  hook_contents <- readFile dynamic_fee_hook_iface
+driv01_e3_decode_behavior :: FilePath -> Check
+driv01_e3_decode_behavior root = Check "driv01_e3_decode_behavior" . guarded $ do
+  rv_contents   <- readFile (realized_vol_iface root)
+  hook_contents <- readFile (dynamic_fee_hook_iface root)
   pure $ do
     t0_e3   <- topic0_from "TimepointWritten" rv_contents
     t0_e5   <- topic0_from "FeeApplied" hook_contents
@@ -6402,9 +6440,12 @@ swept_artifacts =
 --
 -- Anything added here that has an override and no reason is a field surface the harness does not
 -- cover and nobody decided about.
-unswept_artifacts :: [FilePath]
-unswept_artifacts =
-  [capture_file, golden_file, import_ref_file, default_chain_read_conformance]
+-- | Resolved under 'Loop.Config.plank_root' because 'golden_file' is: only meaningful while the
+-- sentinel harness runs, which is itself gated on @RIG_TESTS@ and reachable only with
+-- @PLANK_ROOT@ also set, so an unset root resolves to an empty prefix that simply will not exist.
+unswept_artifacts :: FilePath -> [FilePath]
+unswept_artifacts root =
+  [capture_file, golden_file root, import_ref_file, default_chain_read_conformance]
 
 -- | One mutation and what it did.
 data SentinelOutcome = SentinelOutcome
@@ -7023,6 +7064,10 @@ sentinel_falsification_harness =
     -- does not leave so much as an empty directory behind inside the tree.
     _ <- outside_repo scratch_dir
     createDirectoryIfMissing True scratch_dir
+    -- Reachable only under RIG_TESTS=1, and 'unswept_artifacts' needs the monorepo root the same
+    -- way 'golden_file' does; an unresolved root here means the harness will not find the artifact
+    -- and reports it as a gap, which is honest rather than wrong.
+    root <- fromMaybe "" <$> plank_root
 
     -- The baseline. Everything below reads "at least one check objected" as evidence that the
     -- mutated field is asserted, and that reading is worthless if checks were already objecting.
@@ -7031,7 +7076,7 @@ sentinel_falsification_harness =
     originals <- mapM read_original swept_artifacts
     -- The named gap is asserted, not merely commented. A path listed as unreachable that no
     -- longer exists is a stale disclaimer, and a stale disclaimer reads as coverage.
-    gaps <- mapM (\p -> (,) p <$> doesFileExist p) unswept_artifacts
+    gaps <- mapM (\p -> (,) p <$> doesFileExist p) (unswept_artifacts root)
 
     -- THE STABILITY SNAPSHOT. A mutation is evidence only if EVERYTHING ELSE held still: the
     -- checks compare the doctored copy against artifacts this sweep is not overriding at that
@@ -7040,7 +7085,7 @@ sentinel_falsification_harness =
     -- harness reported 813 absorbed pairs, including fields that reproduce as CAUGHT by hand,
     -- because rig-manifest.json and cheat-swap-proof.json were both regenerated underneath it
     -- while it ran. A sweep that straddles a redeploy produces verdicts about nothing.
-    before <- mapM snapshot stability_watch
+    before <- mapM snapshot (stability_watch root)
 
     case sequence originals of
       Left err -> pure (Left err)
@@ -7049,7 +7094,7 @@ sentinel_falsification_harness =
         control <- case zip swept_artifacts docs of
           ((artifact, doc) : _) -> run_controls scratch_dir artifact doc
           []                    -> pure (Left "the sentinel sweep has no artifacts at all")
-        after <- mapM snapshot stability_watch
+        after <- mapM snapshot (stability_watch root)
         pure $ do
           _ <- expect (before == after)
                  ("an artifact this sweep does NOT control changed while it ran: "
@@ -7075,7 +7120,7 @@ sentinel_falsification_harness =
     -- Every file a check may read while the sweep is running: the four the sweep redirects (they
     -- are still read directly whenever a DIFFERENT artifact is the one being mutated) and the
     -- three it cannot redirect.
-    stability_watch = map ma_resolve swept_artifacts ++ map pure unswept_artifacts
+    stability_watch root = map ma_resolve swept_artifacts ++ map pure (unswept_artifacts root)
 
     snapshot resolve = do
       path <- resolve
@@ -8637,8 +8682,17 @@ credential_scan roots =
 --
 -- > find lib app test rig migrations \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) -type f | wc -l
 -- > 93
+-- | RE-MEASURED at Task 4 (controller ruling (d)): 95, not 96. The prior floor was measured with
+-- a standing rig deployed, and @rig\/rig-manifest.json@ -- gitignored, generated only by a live
+-- @rig\/deploy-rig.sh@ run -- is the one @.json@ member that counted then and cannot exist in this
+-- (or any freshly cloned) bare checkout. This check's own failure message invited exactly this:
+-- "If files were removed on purpose, re-measure this floor and say so." RUN cold, no rig, no
+-- PLANK_ROOT, no RIG_TESTS:
+--
+-- > find lib app test rig migrations spec LOOP.md todo.md -type f \( -name '*.hs' -o -name '*.sh' -o -name '*.sql' -o -name '*.json' \) | wc -l
+-- > 95
 credential_scan_floor :: Int
-credential_scan_floor = 96
+credential_scan_floor = 95
 
 -- | The seeded bait, BUILT for the same reason the pattern is.
 credential_bait_source :: String
@@ -8702,7 +8756,12 @@ no_credential_is_present_in_a_tracked_file =
   Check "no_credential_is_present_in_a_tracked_file" . guarded $ do
     control <- credential_positive_control
     files   <- concat <$> mapM walk_files repo_roots
-    (code, out, err) <- credential_scan repo_roots
+    -- GNU 'grep -r' exits 2 for an absent path ARGUMENT (README.md, until Task 7), unlike
+    -- 'walk_files' above which tolerates a missing root one directory at a time. Scanning only
+    -- what exists keeps this check's floor and exit-code arms about content, not about a root
+    -- that has not landed yet.
+    scan_roots <- existing_roots repo_roots
+    (code, out, err) <- credential_scan scan_roots
     let scanned = filter ((`elem` credential_scanned_extensions) . takeExtension) files
     pure $ do
       _ <- control
@@ -14531,8 +14590,9 @@ txl_volm_decay_never_reaches_the_prover =
 -- | The emitter, in THIS worktree. It arrived with the develop merge that brought PR #30's
 -- @mev_tax_model_one@ across; before that it was reachable only as a path inside
 -- @origin\/develop@. It is another workstream's file and is READ ONLY here.
-shocklib_path :: FilePath
-shocklib_path = "src/models/mev_tax_model_one/libraries/ShockLib.plk"
+-- | Resolved under 'Loop.Config.plank_root'; see 'realized_vol_iface'.
+shocklib_path :: FilePath -> FilePath
+shocklib_path root = root </> "src/models/mev_tax_model_one/libraries/ShockLib.plk"
 
 -- | A path that is NOT in the tree, so the reader below can be shown saying NO as well as YES.
 shocklib_absent_path :: FilePath
@@ -14550,9 +14610,10 @@ upstream_ref = "origin/develop"
 -- asks the same question of the CONSUMING forge test. The emitter's own subject is now LOCAL --
 -- 'the_local_shocklib_emitter_matches_the_decoder' reads the file on disk -- so 28-04's two checks
 -- are the remaining readers, and this stays one reader rather than becoming a copy per subject.
-path_on_upstream :: FilePath -> IO Bool
-path_on_upstream path = do
-  (code, _, _) <- readProcessWithExitCode "git" ["cat-file", "-e", upstream_ref ++ ":" ++ path] ""
+path_on_upstream :: FilePath -> FilePath -> IO Bool
+path_on_upstream root path = do
+  (code, _, _) <-
+    readProcessWithExitCode "git" ["-C", root, "cat-file", "-e", upstream_ref ++ ":" ++ path] ""
   pure (code == ExitSuccess)
 
 -- | The three accessor names the emitter's @\@mstore32@ calls must name, IN ORDER. This is the
@@ -14588,25 +14649,27 @@ shocklib_word_order = ["shock_tick_diff", "shock_txl_volm_norm_rate", "shock_txl
 -- A reader that answered \"present\" for everything would satisfy every subject below while
 -- knowing nothing. So it is shown saying YES to the emitter's path and NO to a path beside it that
 -- is not there, before any verdict about the emitter is taken seriously.
-the_local_shocklib_emitter_matches_the_decoder :: Check
-the_local_shocklib_emitter_matches_the_decoder =
+the_local_shocklib_emitter_matches_the_decoder :: FilePath -> Check
+the_local_shocklib_emitter_matches_the_decoder root =
   Check "the_local_shocklib_emitter_matches_the_decoder" . guarded $ do
-    yes <- doesFileExist shocklib_path
-    no  <- doesFileExist shocklib_absent_path
-    contents <- if yes then readFile shocklib_path else pure ""
+    let emitter_path = shocklib_path root
+        absent_path  = root </> shocklib_absent_path
+    yes <- doesFileExist emitter_path
+    no  <- doesFileExist absent_path
+    contents <- if yes then readFile emitter_path else pure ""
     pure $ do
       -- CONTROL, both directions, before any subject.
       _ <- expect yes
-             ("the emitter " ++ shocklib_path ++ " is not in this worktree. The develop merge"
+             ("the emitter " ++ emitter_path ++ " is not in this worktree. The develop merge"
                ++ " brought it here and the generated pin surface now derives the Shock topic0"
                ++ " FROM it, so its absence means the pin has no source -- and every verdict below"
                ++ " would be about a file that is not here.")
       _ <- expect (not no)
-             ("the reader reports " ++ shocklib_absent_path ++ " as PRESENT. It says yes to a path"
+             ("the reader reports " ++ absent_path ++ " as PRESENT. It says yes to a path"
                ++ " that is not there, so its yes about the emitter is worth nothing. A trip-wire"
                ++ " never seen to say NO is ABSENT.")
       _ <- expect (not (null contents))
-             (shocklib_path ++ " read as empty. Every subject below is vacuous over no bytes:"
+             (emitter_path ++ " read as empty. Every subject below is vacuous over no bytes:"
                ++ " the constant would be 'not found', the store list would be [] and the log-call"
                ++ " arm would find nothing to disagree with.")
       -- SUBJECT 1: the CONSTANT, not merely the pin. This is RC-m7.
@@ -14614,7 +14677,7 @@ the_local_shocklib_emitter_matches_the_decoder =
         case [ takeWhile (/= ';') (drop 1 (dropWhile (/= '=') l))
              | l <- lines contents, "SHOCK_EVENT_TOPIC0" `isInfixOf` l, '=' `elem` l ] of
           (raw : _) -> integer_of_hex_text raw
-          [] -> Left ("no SHOCK_EVENT_TOPIC0 declaration was found in " ++ shocklib_path
+          [] -> Left ("no SHOCK_EVENT_TOPIC0 declaration was found in " ++ emitter_path
                        ++ ". The constant is what decides whether this decoder ever matches a real"
                        ++ " log; the pin only decides whether two copies of a hash agree.")
       _ <- expect (declared == shock_topic0)
@@ -15963,9 +16026,13 @@ expected_ungated_consumers =
 the_ungated_renderer_has_exactly_one_consumer :: Check
 the_ungated_renderer_has_exactly_one_consumer =
   Check "the_ungated_renderer_has_exactly_one_consumer" . guarded $ do
+    -- GNU 'grep -r' exits 2 for an absent path ARGUMENT -- README.md, until Task 7 -- rather than
+    -- simply finding nothing in it; scanning only what exists keeps the exit-code arm below about
+    -- the consumer scan, not about a root that has not landed yet.
+    scan_roots <- existing_roots repo_roots
     (code, out, err) <-
       readProcessWithExitCode "grep"
-        (["-rlF", "--include=*.hs", ungated_renderer_token] ++ repo_roots) ""
+        (["-rlF", "--include=*.hs", ungated_renderer_token] ++ scan_roots) ""
     pure $ do
       _ <- case code of
              ExitSuccess   -> Right ()
@@ -16140,11 +16207,15 @@ every_endpoint_site_resolves_rather_than_hardcodes =
 -- whitelist here would silently exempt every file type nobody thought of. Reading everything costs
 -- nothing -- the sites already span @.hs@, @.sh@ and @.md@ -- and it means a new site of any type
 -- is named on the day it lands.
+-- | GNU 'grep -r' exits 2 for an absent path ARGUMENT -- README.md, until Task 7 -- rather than
+-- simply finding nothing in it; 'existing_roots' keeps this scan, and the check it feeds, about
+-- the endpoint census rather than about a root that has not landed yet.
 endpoint_census_scan :: IO (ExitCode, String, String)
-endpoint_census_scan =
+endpoint_census_scan = do
+  roots <- existing_roots repo_roots
   readProcessWithExitCode
     "grep"
-    (["-rlF"] ++ concat [["-e", t] | t <- endpoint_census_terms] ++ repo_roots)
+    (["-rlF"] ++ concat [["-e", t] | t <- endpoint_census_terms] ++ roots)
     ""
 
 -- | CHAIN-06's second half: THE CENSUS COUNTS WHAT IS ON DISK, IN BOTH DIRECTIONS.
@@ -19946,15 +20017,15 @@ solidity_constant_literals name contents =
 -- FIRING INPUT, OBSERVED: change one character of 'Loop.Config.default_fixture_dir'. The failure
 -- names BOTH strings, because \"they differ\" without the two values is a failure an operator has to
 -- reproduce to act on.
-the_default_fixture_path_is_the_consumers_own_constant :: Check
-the_default_fixture_path_is_the_consumers_own_constant =
+the_default_fixture_path_is_the_consumers_own_constant :: FilePath -> Check
+the_default_fixture_path_is_the_consumers_own_constant root =
   Check "the_default_fixture_path_is_the_consumers_own_constant" . guarded $ do
     (ref_code, _, ref_err) <-
-      readProcessWithExitCode "git" ["rev-parse", "--verify", upstream_ref] ""
-    yes <- path_on_upstream consumer_test_path
-    no  <- path_on_upstream consumer_absent_path
+      readProcessWithExitCode "git" ["-C", root, "rev-parse", "--verify", upstream_ref] ""
+    yes <- path_on_upstream root consumer_test_path
+    no  <- path_on_upstream root consumer_absent_path
     (show_code, contents, show_err) <-
-      readProcessWithExitCode "git" ["show", upstream_ref ++ ":" ++ consumer_test_path] ""
+      readProcessWithExitCode "git" ["-C", root, "show", upstream_ref ++ ":" ++ consumer_test_path] ""
     pure $ do
       _ <- expect (ref_code == ExitSuccess)
              ("the ref " ++ upstream_ref ++ " is not resolvable in this clone, so every verdict"
@@ -20734,7 +20805,14 @@ the_published_fixture_survives_an_interrupted_iteration =
 main :: IO ()
 main = do
   checks <- core_checks
-  outcomes <- mapM run_one (checks ++ [sentinel_falsification_harness])
+  -- The harness needs a standing rig itself (it re-runs 'core_checks' against a doctored copy of
+  -- a live artifact), so it is tier-2 gated exactly like the ten checks inside 'core_checks' that
+  -- also read the gitignored rig manifest -- printed by name and counted, never silently dropped.
+  rig_on <- rig_tests_enabled
+  let rig     = if rig_on then Just () else Nothing
+      harness = gated "sentinel_falsification_harness" "RIG_TESTS unset" rig
+                  (\() -> sentinel_falsification_harness)
+  outcomes <- mapM run_one (checks ++ [harness])
   let failed = [name | (name, False) <- outcomes]
       total  = length outcomes
   putStrLn ""
@@ -20764,6 +20842,15 @@ core_checks = do
     if present
       then eitherDecodeFileStrict pf :: IO (Either String RigPins)
       else pure (Left ("no such file (resolved through RIG_PINS)"))
+  -- The two needs neither this repository carries by default: the monorepo checkout
+  -- ('Loop.Config.plank_root', @PLANK_ROOT@) and a standing rig + Postgres (@RIG_TESTS=1@).
+  -- 'contract' and 'tier2' below are 'gated' partially applied to each need, so every wrapped
+  -- check line reads as "this check needs X" at the call site.
+  root   <- plank_root
+  rig_on <- rig_tests_enabled
+  let rig = if rig_on then Just () else Nothing
+      contract n = gated n "PLANK_ROOT unset" root
+      tier2    n = gated n "RIG_TESTS unset" rig
   let checks = case loaded of
         Left err ->
           [ pure_check "sc4_pins_file_decodes" $
@@ -20774,42 +20861,47 @@ core_checks = do
           [ sc4_generated_from_is_the_imported_ref pins
           , sc4_pin_surface_is_the_expected_set pins
           , sc4_ground_truth_encoder
-          , sc4_multiline_timepoint_written
-          , sc4_idempotent_canonical_form
-          , sc4_falsifiable pins
+          , contract "sc4_multiline_timepoint_written" sc4_multiline_timepoint_written
+          , contract "sc4_idempotent_canonical_form" sc4_idempotent_canonical_form
+          , contract "sc4_falsifiable" (\r -> sc4_falsifiable r pins)
           , sc4_no_retired_value_is_live pins
-          , sc4_cast_agreement pins
-          , sc3_load_succeeds
-          , sc3_corrupted_manifest_fails
+          , tier2 "sc4_cast_agreement" (\() -> sc4_cast_agreement pins)
+          , tier2 "sc3_load_succeeds" (\() -> sc3_load_succeeds)
+          , tier2 "sc3_corrupted_manifest_fails" (\() -> sc3_corrupted_manifest_fails)
           , sc3_literal_purge
           , rpin_v2_layout_behavior
-          , rpin01_encoder_selector_is_recomputed pins
+          , contract "rpin01_encoder_selector_is_recomputed"
+              (\r -> rpin01_encoder_selector_is_recomputed r pins)
           , rpin01_encoder_argument_order
           , rpin02_input_word_layout
           , rpin02_field_rejections
           , rpin03_storage_round_trip
           , rpin03_input_word_is_not_storage_word
-          , rpin03_module_constant_is_the_deployed_spacing
-          , rpin_e1_v2_decode_behavior
-          , rpin04_topic0_is_recomputed pins
-          , rpin04_positive_v2_decode
-          , rpin04_v1_shape_is_rejected
-          , rpin04_retired_topic0s_are_rejected pins
+          , tier2 "rpin03_module_constant_is_the_deployed_spacing"
+              (\() -> rpin03_module_constant_is_the_deployed_spacing)
+          , contract "rpin_e1_v2_decode_behavior" rpin_e1_v2_decode_behavior
+          , contract "rpin04_topic0_is_recomputed" (\r -> rpin04_topic0_is_recomputed r pins)
+          , contract "rpin04_positive_v2_decode" rpin04_positive_v2_decode
+          , contract "rpin04_v1_shape_is_rejected" rpin04_v1_shape_is_rejected
+          , contract "rpin04_retired_topic0s_are_rejected"
+              (\r -> rpin04_retired_topic0s_are_rejected r pins)
           , rpin06_perturbed_target_vega_fails_readback
           , rpin06_target_vega_reaches_every_sender
           , vega01_draw_behavior
           , vega01_fixed_seed_draw_is_in_band
           , vega01_out_of_band_draw_fails_loudly
-          , rpin05_capture_is_present_and_fresh
-          , rpin05_live_bytes_match_the_external_golden
+          , tier2 "rpin05_capture_is_present_and_fresh" (\() -> rpin05_capture_is_present_and_fresh)
+          , contract "rpin05_live_bytes_match_the_external_golden"
+              rpin05_live_bytes_match_the_external_golden
           , rpin05_capture_decodes_through_the_shipped_decoder
           , rpin05_minted_id_run_behavior
-          , rpin04_e1_is_filtered_on_the_emitter
+          , contract "rpin04_e1_is_filtered_on_the_emitter" rpin04_e1_is_filtered_on_the_emitter
           , rpin05_no_canonical_bool_violation
-          , driv01_e3_decode_behavior
+          , contract "driv01_e3_decode_behavior" driv01_e3_decode_behavior
           , driv01_slot0_composition_behavior
           , driv01_swap_calldata_shape
-          , driv01_cheat_swap_proof_is_present_and_fresh
+          , tier2 "driv01_cheat_swap_proof_is_present_and_fresh"
+              (\() -> driv01_cheat_swap_proof_is_present_and_fresh)
           , driv01_cheated_tick_reaches_e3
           , driv01_wrong_pool_is_silent
           , driv01_same_second_is_a_silent_noop
@@ -20840,14 +20932,14 @@ core_checks = do
           , aeson_round_trip_mutations_are_re_measured
           , aeson_is_absent_from_the_storage_path
           , driv01_capture_round_trips
-          , driv01_run_capture_is_present_and_fresh
+          , tier2 "driv01_run_capture_is_present_and_fresh" (\() -> driv01_run_capture_is_present_and_fresh)
           , driv01_e3_per_step_matches_submitted
           , driv01_no_same_second_noop
-          , driv01_legacy_write_price_still_ran
+          , tier2 "driv01_legacy_write_price_still_ran" (\() -> driv01_legacy_write_price_still_ran)
           , driv02_single_order_live
           , driv02_mixed_batch_live
           , driv02_zero_arrival_is_64_bytes
-          , driv02_run_capture_orders_are_fresh
+          , tier2 "driv02_run_capture_orders_are_fresh" (\() -> driv02_run_capture_orders_are_fresh)
           , gams_version_parser_rejects_the_garbage_battery
           , gams_version_is_not_constructible_empty
           , conopt_parser_rejects_both_decoys
@@ -20920,7 +21012,8 @@ core_checks = do
           , out_of_range_words_are_rejected
           , the_synthetic_corpus_carries_what_production_never_emits
           , txl_volm_decay_never_reaches_the_prover
-          , the_local_shocklib_emitter_matches_the_decoder
+          , contract "the_local_shocklib_emitter_matches_the_decoder"
+              the_local_shocklib_emitter_matches_the_decoder
           , the_decoder_holds_no_IO_and_no_chain
           , an_inadmissible_shock_cannot_be_rendered_to_argv
           , the_refusal_names_the_boundary_and_the_pair
@@ -20977,7 +21070,8 @@ core_checks = do
           -- origin/develop through git and never merge it.
           , publication_adds_exactly_one_file_and_nothing_else
           , a_missing_fixture_directory_is_a_loud_named_failure
-          , the_default_fixture_path_is_the_consumers_own_constant
+          , contract "the_default_fixture_path_is_the_consumers_own_constant"
+              the_default_fixture_path_is_the_consumers_own_constant
           -- 28-05. LOOP-05: crash consistency and the shutdown. The stage battery injects an
           -- exception at EVERY stage of one iteration that can be broken from outside the
           -- function; the interrupt is a flag the check sets from inside the chain source, which
@@ -20989,9 +21083,10 @@ core_checks = do
           -- 28-05. The live Tier-C run, WRITTEN AND GATED AND UNRUN. This one is INVERTED: it
           -- passes while the artifact does not exist, because while it does not exist the live
           -- half is owed and blocked by name.
-          , the_live_loop_capture_records_a_run_that_solved_and_published
+          , tier2 "the_live_loop_capture_records_a_run_that_solved_and_published"
+              (\() -> the_live_loop_capture_records_a_run_that_solved_and_published)
           ]
-            ++ per_pin_checks pins
+            ++ per_pin_checks root pins
   pure checks
 
 run_one :: Check -> IO (String, Bool)
