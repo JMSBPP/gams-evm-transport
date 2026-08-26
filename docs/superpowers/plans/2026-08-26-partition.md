@@ -340,3 +340,7 @@ No dry-run flag was added to `check-upstream.sh` — the controller ruling was e
 documentation is the fix here, not new script behavior. Remediation for `rig/import-ref.txt`
 actually moving to `d2b1c518...` (origin/develop's current tip, confirmed live during this task)
 is the full `rig-e2e` cycle in Task 8.
+
+## First CI run
+
+`haskell.yml` run 32986773735 on `main` @ 6028d89 (2026-08-26): `approve` + `build-test` green on runner `cfmm-build-transport` (cold cabal store). `rig-e2e` not dispatched (issue #2).
