@@ -63,19 +63,16 @@ gams_bin = fromMaybe default_gams_bin <$> lookupEnv gams_bin_env_var
 gams_model_env_var :: String
 gams_model_env_var = "GAMS_MODEL"
 
--- | A FACT OF RECORD: @volume_path.gms@ DOES NOT EXIST IN THIS WORKTREE.
---
--- It lives in the sibling GAMS worktree, whose checkout of the monorepo carries the @model\/@ tree
--- this branch does not. The default below is therefore the canonical MONOREPO-RELATIVE path, and
--- resolving it from this worktree fails -- which is correct and is the point: a run here REQUIRES
--- the @GAMS_MODEL@ override, and the failure names the path it looked for rather than quietly
--- resolving something else.
+-- | The prover lives in the numerical-optimization layer, JMSBPP/cfmm-numopt, mounted here as
+-- the @cfmm-numopt@ submodule and pinned by SHA. The default is that path; an uninitialised
+-- submodule fails resolution NAMING the path, which is the failure that tells an operator to
+-- run @git submodule update --init cfmm-numopt@ rather than quietly resolving something else.
 --
 -- The basename matters twice over. It is the file that is invoked, and it is the JOB NAME the
 -- banner must carry for 'Gams.Version.parse_gams_version' to accept the version it reports -- so
 -- the model path and the version's subject are the same fact, resolved once.
 default_gams_model :: FilePath
-default_gams_model = "model/mev_tax_model_one/volume_path.gms"
+default_gams_model = "cfmm-numopt/model/mev_tax_model_one/volume_path.gms"
 
 -- | @GAMS_MODEL@, defaulting to the canonical monorepo-relative model path.
 gams_model :: IO FilePath

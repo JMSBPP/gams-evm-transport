@@ -33,7 +33,7 @@
   ],
   "ellipse_abort_line": 109,
   "gams_version": "54.1.0",
-  "generatedAt": "2026-08-17T20:45:31Z",
+  "generatedAt": "2026-08-26T15:05:19Z",
   "grid": [
     {
       "gams_abort_line": 109,
@@ -156,7 +156,7 @@
       "txlVolumeRate": 495954
     }
   ],
-  "model_sha256": "79940449af9e166b00490e2a5e2a8dde7add29dfad04b304fcc07ffe85ca53ad",
+  "model_sha256": "d454654cbc2149adf947b7ffc81803796fba18b4a9f1d0f0515a9ea37d3b4169",
   "n_events": 8,
   "splitter_source_sha256": "b3510f82f57f23019c3f5e6bb2d209e9f979dfb01e82ec5a9011838c7ec127ab",
   "vol_tgt_wad": "28000000000000000000"

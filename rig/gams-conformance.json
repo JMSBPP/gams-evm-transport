@@ -3,8 +3,8 @@
     "artifact_present": false,
     "exit": 0
   },
-  "argv_module_sha256": "099d9a88729c0f2acd791478d9a8e81450551c82a4445fce4034ae08e702385f",
-  "artifact_module_sha256": "ac943852c4bc15acc901f6577256c234c3373d28bf06695559f825208a5632e4",
+  "argv_module_sha256": "dcc09db3af8e956a939be6862e5fc5ceb7865f89da4a0937da592a340ab648d8",
+  "artifact_module_sha256": "c9037435db231112831a4fe298a829015be03ee8026a8297968e03300855a10c",
   "conopt_link_version": "54.1.0",
   "conopt_method": "Gams.Version.parse_conopt_version over the stdout of an 8-line hermetic NLP probe run at lo=3, matched on the spaced-letter banner and never on a line position",
   "conopt_so_name": "libconopt464.so",
@@ -27,7 +27,7 @@
   "gams_version": "54.1.0",
   "gams_version_method": "Gams.Version.parse_gams_version over volume_path.log line 1 of the clean solve, anchored on the job name so the two exit-0 wrong-subject banners cannot satisfy it",
   "gc_complete": true,
-  "generatedAt": "2026-08-17T20:35:55Z",
+  "generatedAt": "2026-08-26T15:05:12Z",
   "golden": {
     "len": 606,
     "sha256": "e7b14f384ab4c027be5450218a52040110d45dbaddbbfb0bb7bd5ab707d0d884"
@@ -55,13 +55,13 @@
   },
   "model_sources": [
     {
-      "path": "/home/jmsbpp/cfmms-playground/cfmm-wt/gams/model/mev_tax_model_one/volume_path.gms",
-      "sha256": "79940449af9e166b00490e2a5e2a8dde7add29dfad04b304fcc07ffe85ca53ad"
+      "path": "/home/jmsbpp/cfmm/gams-evm-transport/cfmm-numopt/model/mev_tax_model_one/volume_path.gms",
+      "sha256": "d454654cbc2149adf947b7ffc81803796fba18b4a9f1d0f0515a9ea37d3b4169"
     }
   ],
   "no_args": {
     "exit": 0,
-    "line1": "--- Job ? Start 08/17/26 16:35:55 54.1.0 37378ce0 LEX-LEG x86 64bit/Linux",
+    "line1": "--- Job ? Start 08/26/26 11:05:12 54.1.0 37378ce0 LEX-LEG x86 64bit/Linux",
     "parser_verdict": "Left (WrongJob \"?\")",
     "stderr_len": 0,
     "stdout_len": 1239
@@ -106,7 +106,7 @@
   ],
   "version_flag": {
     "exit": 6,
-    "line1": "--- Job --version Start 08/17/26 16:35:55 54.1.0 37378ce0 LEX-LEG x86 64bit/Linux",
+    "line1": "--- Job --version Start 08/26/26 11:05:12 54.1.0 37378ce0 LEX-LEG x86 64bit/Linux",
     "parser_verdict": "Left (WrongJob \"--version\")",
     "stderr_len": 0,
     "stdout_len": 275
