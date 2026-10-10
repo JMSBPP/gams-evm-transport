@@ -1,0 +1,15 @@
+{
+    "name": "GamsStdInFetcher"
+    "purpose": "To support GAMS stdIn fetcher service from on-chain module event logs",
+    "responsabilities": [
+	{
+	    "1.0": "To support GAMS module to request parameters and sets data from a ethereum blockchain"
+	},
+	{
+	    "2.0": "To support GAMS module to read parameters and sets data from external data formats"
+	}
+
+    ]
+    "exclussions" : []
+
+}
