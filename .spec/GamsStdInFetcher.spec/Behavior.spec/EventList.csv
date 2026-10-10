@@ -1,0 +1,15 @@
+1,GAMSClient calls a method for getting stdIn
+2,GamsFoundryServer starts
+3,GAMSClient forwards the method to the foundryClient through the RPCLayer
+4,foundryClient starts anvilServer
+5,foundryClient deploys the onChainModelParameterFixtureGen
+6,onChainModelParameterFixtureGen emits ModelParameterFixtureLogs
+7,onChainModelParameterFixtureGen emits ModelIndexFixtureLogs
+8,foundryClient indexes anvilServer ModelParameterFixtureLogs
+9,foundryClient indexes anvilServer ModelIndexFixtureLogs
+10,foundryClient writes ModelParameterFixtureParquet
+11,foundryClient writes ModelIndexFixtureParquet
+12,foundryClient informs GAMSClient ModelIndexFixtureParquet are written
+13,foundryClient informs GAMSClient ModelParameterFixtureParquet are written
+14,GAMSClient reads ModelIndexFixtureParquet
+15,GAMSClient reads ModelParameterFixtureParquet
