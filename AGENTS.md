@@ -24,3 +24,7 @@
 - After the issue is open, open a pull request from the issue branch into `feat-gams-std-in-fetcher` and leave it open.
 - The pull request body is `solve #<issue number>` until more detail is added; then change the body.
 
+
+# [GAMS_DOCUMENTATION_HELPER](session_id=433bef4d-119c-4603-ba8f-b4202cbc5970)
+
+- Use https://www.gams.com/54/docs/ for every request
