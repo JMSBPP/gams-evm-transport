@@ -8,6 +8,7 @@
 
 - For each interaction make sure to ALWAYS lookup your `session_id` and refer ONLY to # GLOBAL and session specific instructions
 - When user asks you to 'write on disk' an output from a session work make sure to use do it on the 'gitignored' folder .agent-out/<your_session_id>/<date><query/investigation_descriptive_name>.md
+- Issues and pull requests go to origin (`JMSBPP/gams-evm-transport`) unless otherwise stated. Do not open them on upstream (`d2p-finance/gams-evm-transport`).
 
 # [SPEC_WRITTING_HELPER](session_id = cd7c076f-adcd-4f58-a259-040756e0225d)
 
