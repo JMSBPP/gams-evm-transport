@@ -1,6 +1,6 @@
 {
     "name": "GamsStdInFetcher",
-    "purpose": "The GAMS input file receives its set and parameter data from Ethereum logs.",
+    "purpose": "A model requests an instance of its exogenous parameters and its indexes from the ExogenousInstanceBuilder of that instance.",
     "responsabilities": [],
     "exclussions": []
 }
