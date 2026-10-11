@@ -1,4 +1,8 @@
-gams:
+dispatcher:
+    mkdir -p lib/exec
+    cc -fPIC -shared -o lib/exec/CommandDispatcher.so stdin/CommandDispatcher.c
+
+gams: dispatcher
     gams stdin/ExogenousInstanceRequest.gms
 
 ping:

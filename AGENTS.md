@@ -27,4 +27,6 @@
 
 # [GAMS_DOCUMENTATION_HELPER](session_id=433bef4d-119c-4603-ba8f-b4202cbc5970)
 
-- Use https://www.gams.com/54/docs/ for every request
+- Use https://www.gams.com/54/docs/ for every request related to gams
+- Use https://idris2.readthedocs.io/en/latest/index.html for every request related to idris-2
+
