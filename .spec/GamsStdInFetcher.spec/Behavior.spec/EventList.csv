@@ -1,15 +1,10 @@
-1,GAMSClient calls a method for getting stdIn
-2,GamsFoundryServer starts
-3,GAMSClient forwards the method to the foundryClient through the RPCLayer
-4,foundryClient starts anvilServer
-5,foundryClient deploys the onChainModelParameterFixtureGen
-6,onChainModelParameterFixtureGen emits ModelParameterFixtureLogs
-7,onChainModelParameterFixtureGen emits ModelIndexFixtureLogs
-8,foundryClient indexes anvilServer ModelParameterFixtureLogs
-9,foundryClient indexes anvilServer ModelIndexFixtureLogs
-10,foundryClient writes ModelParameterFixtureParquet
-11,foundryClient writes ModelIndexFixtureParquet
-12,foundryClient informs GAMSClient ModelIndexFixtureParquet are written
-13,foundryClient informs GAMSClient ModelParameterFixtureParquet are written
-14,GAMSClient reads ModelIndexFixtureParquet
-15,GAMSClient reads ModelParameterFixtureParquet
+1,A model requests an instance of its exogenous parameters and its indexes.
+2,The ExogenousInstanceBuilder starts.
+3,The model sends an ExogenousInstanceRequest to the ExogenousInstanceBuilder by RPC.
+4,The ExogenousInstanceBuilder starts Anvil.
+5,The ExogenousInstanceBuilder deploys an ExogenousInstanceEmitter on Anvil for each ExogenousInstanceRequest.
+6,The ExogenousInstanceEmitter emits the ExogenousInstanceRequest's exogenous parameters as an ExogenousParameters event and its indexes as an Indexes event.
+7,The ExogenousInstanceBuilder reads the ExogenousInstanceRequest's ExogenousParameters event and its Indexes event from Anvil.
+8,The ExogenousInstanceBuilder writes the ExogenousInstanceRequest's instance into the Connect database.
+9,The ExogenousInstanceBuilder informs the model that the instance is in the Connect database.
+10,The model reads the ExogenousInstanceRequest's instance from the Connect database.
