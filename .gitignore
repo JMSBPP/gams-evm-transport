@@ -16,3 +16,7 @@ lib/exec/
 # Local worktrees / scratch
 .worktrees/
 225*/
+.agent-out/
+
+# Vendored json-schema tool (cloned by `just gdx-schema`)
+vendor/

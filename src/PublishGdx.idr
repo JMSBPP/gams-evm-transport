@@ -1,10 +1,33 @@
+||| Opaque external service: Consumed only after MulticallBatch is fully built from GDX.
 module PublishGdx
 
+import Data.List
 import Data.String
 import System
 import System.File
 
-||| Opaque-service stub: Consumed (exit 0) when the path sidecar points at an existing GDX file.
+import GdxCsv
+import MulticallBatch
+
+jsonEscape : String -> String
+jsonEscape = pack . concatMap escChar . unpack
+  where
+    escChar : Char -> List Char
+    escChar '"' = ['\\', '"']
+    escChar '\\' = ['\\', '\\']
+    escChar c = [c]
+
+callToJson : Call -> String
+callToJson (MkCall t d) =
+  "{\"target\":\"" ++ jsonEscape t ++ "\",\"data\":\"" ++ jsonEscape d ++ "\"}"
+
+||| Serialize MulticallBatch for web3 / file handoff.
+export
+batchToJson : MulticallBatch -> String
+batchToJson (MkMulticallBatch cs) =
+  "{\"calls\":[" ++ fastConcat (intersperse "," (map callToJson cs)) ++ "]}"
+
+||| Consumed (exit 0) only after GDX → CSV → MulticallBatch is complete.
 export
 publishGdx : IO ()
 publishGdx = do
@@ -15,6 +38,12 @@ publishGdx = do
     | True => exitFailure
   True <- exists path
     | False => exitFailure
+  Right batch <- gdxToMulticallBatch path
+    | Left _ => exitFailure
+  let False = null (calls batch)
+    | True => exitFailure
+  Right _ <- writeFile "build/multicall-batch.json" (batchToJson batch)
+    | Left _ => exitFailure
   exitSuccess
 
 main : IO ()

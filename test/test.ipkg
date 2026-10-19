@@ -16,7 +16,7 @@ authors = "JMSBPP"
 depends = StdFetcherCommandList
 
 -- modules to install
--- modules =
+modules = MulticallBatchTest
 
 -- main file (i.e. file to load at REPL)
 main = Main

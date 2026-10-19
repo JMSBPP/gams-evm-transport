@@ -72,4 +72,7 @@ Extrinsic function `Function publishGdx /Commands.publishGdx/;` (library functio
 - Zero numeric arguments (`ARGMIN = ARGMAX = 0`, `MAXDERIV = 0`). GAMS extrinsic callbacks only pass `double` arguments, so the GDX path is **not** an EF argument.
 - Path contract: immediately before the call, the caller writes a single-line path (absolute or cwd-relative) to `build/.gdx-publish-path`.
 - Evaluation blocks until an opaque external service reports consumed (via `just publish-gdx`); the scalar return is `0` = Consumed, nonzero = Failed.
+- **Consumed** means the full job finished: GDX path from sidecar → `gdxdump` CSV → ordered `MulticallBatch` (`{target, data}[]` for web3 Multicall / Solady `multicall(bytes[])`). Intermediate steps (file presence, dump alone) are **not** success.
+- On success the service writes `build/multicall-batch.json`.
 - Generic smoke handoff label: `gdx_handoff` (domain adapters may use names like `tickpath_handoff`).
+- Interchange: GAMS 54 `gdxdump` CSV (locked after spike for index-ordered elements).

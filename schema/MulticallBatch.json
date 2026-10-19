@@ -1,0 +1,17 @@
+{
+  "type": "object",
+  "required": ["calls"],
+  "properties": {
+    "calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "data"],
+        "properties": {
+          "target": { "type": "string" },
+          "data": { "type": "string" }
+        }
+      }
+    }
+  }
+}
