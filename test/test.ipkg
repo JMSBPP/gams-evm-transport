@@ -1,4 +1,4 @@
-package gams-evm-test
+package StdFetcherCommandList-test
 version = 0.1.0
 authors = "JMSBPP"
 -- maintainers =
@@ -13,7 +13,7 @@ authors = "JMSBPP"
 -- langversion
 
 -- packages to add to search path
-depends = gams-evm
+depends = StdFetcherCommandList
 
 -- modules to install
 -- modules =
@@ -22,7 +22,7 @@ depends = gams-evm
 main = Main
 
 -- name of executable
-executable = "gams-evm-test"
+executable = "StdFetcherCommandList-test"
 -- opts =
 sourcedir = "src"
 -- datadir =

@@ -1,0 +1,6 @@
+{
+    "name": "GamsStdInFetcher",
+    "purpose": "A model requests an instance of its exogenous parameters and its indexes from the ExogenousInstanceBuilder of that instance.",
+    "responsabilities": [],
+    "exclussions": []
+}

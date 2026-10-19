@@ -1,0 +1,13 @@
+{
+    "root": "A model requests an instance of its exogenous parameters and its indexes from the ExogenousInstanceBuilder of that instance.",
+    "leaves": [
+        {
+            "leaf": "ConnectInstructions for the ExogenousInstanceRequest.",
+            "service_description": "The ExogenousInstanceRequest is carried by YAML instructions that a Connect interface processes."
+        },
+        {
+            "leaf": "CommandList for the ExogenousInstanceRequest.",
+            "service_description": "A PythonCode agent in the ConnectInstructions carries the CommandList, and an Idris module runs it."
+        }
+    ]
+}

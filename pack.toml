@@ -1,10 +1,15 @@
+[custom.all.StdFetcherCommandList]
+type = "local"
+path = "."
+ipkg = "StdFetcherCommandList.ipkg"
+test = "test/test.ipkg"
+
+[custom.all.StdFetcherCommandList-test]
+type = "local"
+path = "test"
+ipkg = "test.ipkg"
+
 [custom.all.gams-evm]
 type = "local"
 path = "."
 ipkg = "gams-evm.ipkg"
-test = "test/test.ipkg"
-
-[custom.all.gams-evm-test]
-type = "local"
-path = "test"
-ipkg = "test.ipkg"

@@ -3,6 +3,7 @@
 *.log
 *.gdx
 utils/build/
+lib/exec/
 
 # Idris / pack
 build/
