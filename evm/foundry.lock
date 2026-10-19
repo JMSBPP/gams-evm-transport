@@ -1,0 +1,14 @@
+{
+  "lib/forge-std": {
+    "tag": {
+      "name": "v1.17.0",
+      "rev": "f3dae6e6ee381f25eb6a246f7da9b85c91a68219"
+    }
+  },
+  "lib/multicaller": {
+    "tag": {
+      "name": "v1.3.2",
+      "rev": "b7ef620605f426a93406248dcb005f6cead30673"
+    }
+  }
+}

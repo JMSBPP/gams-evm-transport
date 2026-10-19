@@ -1,124 +1,133 @@
+# gams-evm-transport
 
+GAMS extrinsic `publishGdx` builds a web3 `MulticallBatch` from a GDX file and applies every Tick `setTick` call in **one** Multicaller `aggregate` transaction. Exit `0` (**Consumed**) means on-chain apply succeeded—not merely that `build/multicall-batch.json` was written.
 
+## Prerequisites
 
+| Tool | Role |
+|------|------|
+| [GAMS](https://www.gams.com/) 54+ | Model + extrinsic `publishGdx` |
+| [Idris 2](https://idris2.readthedocs.io/) | `just publish-gdx` consumer service |
+| [just](https://github.com/casey/just) | Recipes (`dispatcher`, `publish-gdx`, …) |
+| [Foundry](https://book.getfoundry.sh/) (`anvil`, `forge`) | Local chain + Tick/Multicaller deploy |
+| `gdxdump` | Shipped with GAMS; used by the Idris GDX path |
+| `curl` | JSON-RPC from Idris |
 
-    GAMS               ------            Idris    ----   plank
-      Model
+Run all `just` recipes from the **repository root**.
 
+## What Consumed means
 
-integraction interface through 
+1. Read GDX path from `build/.gdx-publish-path`
+2. `gdxdump` CSV → ordered `{target, data}[]` (`MulticallBatch`)
+3. Param rows → Tick `setTick(uint256)` calldata (sets skipped)
+4. Write `build/multicall-batch.json` (artifact)
+5. `eth_sendTransaction` Multicaller `aggregate` with every target = Tick
+6. Exit `0` only if that RPC/tx succeeds
 
+Signed param values (e.g. `-1440`) are accepted and encoded as two’s-complement wrap into `uint256` (same bits as Solidity `uint256(int256(n))`).
+
+## Consumer quick start
+
+### 1. Build the extrinsic library
+
+```bash
+just dispatcher
+# → lib/exec/CommandDispatcher.so
 ```
-- <agent name1>:
-    <root option1>: <value>
-    <root option2>: <value>
-    .
-    .
-    <root option3>:
-      - <option1>: <value>
-        <option2>: <value>
-        .
-        .
-      - <option1>: <value>
-        <option2>: <value>
-        .
-        .
-      .
-      .
-- <agent name2>:
-    .
-    .
+
+### 2. Start Anvil and deploy Tick + Multicaller
+
+```bash
+anvil --port 8545   # leave running
+
+cd evm
+forge script script/DeployTick.s.sol:DeployTick \
+  --rpc-url "${ANVIL_RPC_URL:-http://127.0.0.1:8545}" \
+  --broadcast \
+  --private-key "${ANVIL_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}" \
+  -vv
+cd ..
 ```
 
-e.g 
+Deploy writes `build/anvil-addresses.json` with `TICK_ADDRESS` and `MULTICALLER_ADDRESS`.
 
-- PythonCode:
-    code: |
-      print("Print from Python")
-      # insert more Python code here
+### 3. Export addresses for publish
 
- code     Python code to be executed.   
- trace   0   Specify the trace level for debugging output.   
+```bash
+export ANVIL_RPC_URL="${ANVIL_RPC_URL:-http://127.0.0.1:8545}"
+export TICK_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["TICK_ADDRESS"])')
+export MULTICALLER_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["MULTICALLER_ADDRESS"])')
+# optional: ANVIL_FROM (defaults to Anvil account #0)
+```
 
-- agent: Reader | Transformer | Writer
+`publishGdx` fail-closes if Tick/Multicaller addresses are missing.
 
-> As a fist example we wnat the oython code to ping a server/connect to a server and ask for wahtever the gams module needs
-> This is the syntax:
+### 4. Call `publishGdx` from GAMS
 
-$onEmbeddedCode Connect:
-	- PythonCode:
-	   code: | method :: eg some script to run the idris code that actually interacts withn the db
-$offEmbeddedCode
+From a model whose working directory is the repo root (so `just publish-gdx` and `build/` resolve):
 
+```gms
+$funcLibIn Commands ./lib/exec/CommandDispatcher.so
+Function publishGdx /Commands.publishGdx/;
 
-- what is the db ?
+* … fill sets/parameters …
+execute_unload 'build/my.gdx', mySet, myParam;
 
-- well it is some query to an indexer:
+execute 'printf "%s\n" "build/my.gdx" > build/.gdx-publish-path';
+Scalar publishStatus;
+publishStatus = publishGdx;
+abort$(publishStatus <> 0) 'publishGdx failed';
+```
 
+Reference smoke: [`stdin/PublishGdxSmoke.gms`](stdin/PublishGdxSmoke.gms).
 
-1.
+```bash
+# with Anvil up and env from step 3:
+just publish-gdx-smoke
+```
 
-- Start a server
+### 5. Inspect the batch artifact (optional)
 
+On success, `build/multicall-batch.json` looks like:
 
-### REQUIREMENTS
+```json
+{"calls":[{"target":"0x…","data":"0xfb972e51…"}, …]}
+```
 
-For the python server we need a minismalistic interface that sends to idris the method in question. Then we need to first specify the method and communication semantics
+Useful for off-chain inspection; **not** sufficient for Consumed by itself.
 
-python calls the idirs runtime that has the uinderlying method semantics. Then what are the communication semantics
+## Environment variables
 
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `TICK_ADDRESS` | yes | — | Tick contract for `setTick` / aggregate targets |
+| `MULTICALLER_ADDRESS` | yes | — | Vectorized Multicaller for `aggregate` |
+| `ANVIL_RPC_URL` | no | `http://127.0.0.1:8545` | JSON-RPC endpoint |
+| `ANVIL_FROM` | no | Anvil account #0 | `eth_sendTransaction` `from` |
+| `ANVIL_PRIVATE_KEY` | deploy only | Anvil #0 key | Foundry deploy broadcast |
 
-Note that:
+## GDX → calldata rules (Tick demo)
 
-GAMSStdIn(i,j) = [Indexes(i) , Parameters(i,j)]
+- **Parameters** → one `setTick` call per param row (order preserved)
+- **Sets** → skipped
+- Val must be a signed decimal integer string (`3`, `-1440`); otherwise the row is dropped
+- Empty batch after filtering → Failed (nonzero)
 
-Indexes(i) : IndexKey -> SetQuery
-Parameters(i,j): (IndexKey -> (ParameterKey -> ParameterKind) ) -> ParameterQuery
-ParameterKind = Scalar | Vector | Matrix
+Domain adapters (e.g. TickPath handoff labels) live in the consumer repo; this transport only needs a GDX path in `build/.gdx-publish-path`.
 
-GamsQuery = ParameterQuery | SetQuery 
+## Related recipes
 
-GamsClient : GamsQuery -> GamsQueryState -> Response
-GamsQueryState = Sent | Failed | Received
-Response = Empty | Fill Empty
+| Recipe | What it does |
+|--------|----------------|
+| `just dispatcher` | Build `CommandDispatcher.so` |
+| `just publish-gdx` | Run Idris publish service once (needs path file + env) |
+| `just publish-gdx-smoke` | End-to-end GAMS smoke (needs Anvil + addresses) |
+| `just gdx-consume-test` | Idris unit tests (ABI / GdxCsv / batch) |
+| `just evm-tick-test` | Foundry mid-tx Tick + Multicaller tests |
+| `just anvil-tick-smoke` | Deploy + Idris aggregate smoke (hardcoded ticks) |
 
-\(\forall_{q}\) GamsClient(q, Failed) = Empty
+GAMS unload helpers: see [`utils/README.md`](utils/README.md) (`GdxWriter`, `GdxComptimeHandshake`).
 
-FoundryClient: GamsQuery -> GamsQueryState -> Response
+## Spec pointer
 
-\(\forall_{q} \, \)FoundryClient(q, Received) = Fill Empty
-
-
-e.g
-
-SupplyLocationA - > 'getSupplyLocationA'
-
-
-GAMS {
-	stdIn:: [
-		      Sets,  // indexes   
-              Parameters { Scalar, Vector, Matrix }
-		 ], //  EXOGENOUS_VARIABLES
-	 Model :: [
-			 Variables, // ENDOGENOUS_VARIABLES
-			 Equations // MODEL
-     ],
-	 stdOut:: [
-		 Model and Solve Statements, 
-		 Display Statements (optional),
-		 Echo Prints,
-		 Reference Maps,
-		 Equation Listings,
-		 Status Reports,
-		 Solution Reports
-	 ], 
-}
-
-
-
-
-What is GAMS responsability ?
-What is Idris ?
-What is plank ?
-
-Under 
+Formal EF / Consumed contract: [`.spec/GamsStdInFetcher.spec/Functional.spec/Types.spec`](.spec/GamsStdInFetcher.spec/Functional.spec/Types.spec) (`publishGdx` section).

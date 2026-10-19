@@ -1,0 +1,10 @@
+[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+evm_version = "cancun"
+ffi = true
+fs_permissions = [{ access = "read", path = "../src" }, { access = "read-write", path = "./" }, { access = "read-write", path = "../build" }]
+
+[rpc_endpoints]
+anvil = "http://127.0.0.1:8545"

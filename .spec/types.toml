@@ -1,0 +1,67 @@
+# .spec/types.toml — idris-tdd domain metadata
+
+[OnChainApply.Addresses]
+module = "OnChainApply"
+kind = "plain"
+file = "OnChainApply.idr"
+carriers = ["MulticallBatch", "Addresses", "ApplyResult"]
+operations = ["mkAddresses", "applyOnChain"]
+laws = [
+  "Empty batch → success (no-op)",
+  "Outcome is total: every apply yields exactly one ApplyResult",
+  "Failure preserves not-Consumed (caller must not treat failed apply as published)",
+  "Order preserved: call list order is the aggregate call order",
+]
+invalid_states = [
+  "Missing / zero / malformed Tick or Multicaller address",
+  "Empty or invalid calldata in a batch entry",
+  "RPC / tx revert / non-success receipt → ApplyResult failure",
+]
+refined = false
+notes = "Issue #15 deep module; first behavior = nonempty setTick batch → Success on Anvil"
+
+[OnChainApply.ApplyResult]
+module = "OnChainApply"
+kind = "plain"
+file = "OnChainApply.idr"
+carriers = ["ApplyResult"]
+operations = ["success", "failure"]
+laws = ["Exactly one of Success | Failure per apply"]
+refined = false
+notes = "Failure carries a diagnostic string"
+
+[OnChainApply.applyOnChain]
+module = "OnChainApply"
+kind = "plain"
+file = "OnChainApply.idr"
+carriers = ["Addresses", "MulticallBatch", "ApplyResult"]
+operations = ["applyOnChain"]
+laws = [
+  "Empty batch → Success",
+  "Total outcome",
+  "Failure ≠ Consumed",
+  "Order preserved in aggregate",
+]
+refined = false
+notes = "Addresses → MulticallBatch → IO ApplyResult"
+
+[PublishGdx.publishGdx]
+module = "PublishGdx"
+kind = "plain"
+file = "PublishGdx.idr"
+carriers = ["GdxPath", "MulticallBatch", "Addresses", "Success"]
+operations = ["publishGdx"]
+laws = [
+  "Exit 0 ⇔ applyOnChain Success (JSON alone insufficient)",
+  "Nonempty batch required",
+  "applyOnChain Failure → nonzero",
+  "JSON written before apply when batch builds",
+]
+invalid_states = [
+  "Missing / empty / nonexistent GDX path",
+  "gdxToMulticallBatch failure or empty batch",
+  "Missing / bad Addresses",
+  "applyOnChain Failure",
+]
+refined = false
+notes = "Issue #15 thin pipeline; first behavior = tiny GDX → exit 0 only after Anvil Success"

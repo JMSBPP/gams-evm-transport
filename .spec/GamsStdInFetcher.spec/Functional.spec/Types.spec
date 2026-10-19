@@ -72,4 +72,8 @@ Extrinsic function `Function publishGdx /Commands.publishGdx/;` (library functio
 - Zero numeric arguments (`ARGMIN = ARGMAX = 0`, `MAXDERIV = 0`). GAMS extrinsic callbacks only pass `double` arguments, so the GDX path is **not** an EF argument.
 - Path contract: immediately before the call, the caller writes a single-line path (absolute or cwd-relative) to `build/.gdx-publish-path`.
 - Evaluation blocks until an opaque external service reports consumed (via `just publish-gdx`); the scalar return is `0` = Consumed, nonzero = Failed.
+- **Consumed** means the full job finished: GDX path from sidecar → `gdxdump` CSV → ordered `MulticallBatch` (`{target, data}[]`) **and** one Multicaller `aggregate` tx successfully applied every batch call (`applyOnChain` Success). Param rows encode as Tick `setTick(uint256)` calldata; set rows skipped for the Tick demo. Signed param Vals (optional leading `-`) encode as two's-complement wrap into uint256 (\(n \bmod 2^{256}\)), same bits as Solidity `uint256(int256(n))`. Intermediate steps (file presence, dump alone, JSON alone) are **not** success.
+- On success the service writes `build/multicall-batch.json` (artifact) and completes on-chain apply. Requires live RPC + `TICK_ADDRESS` / `MULTICALLER_ADDRESS` (env or deploy addresses).
 - Generic smoke handoff label: `gdx_handoff` (domain adapters may use names like `tickpath_handoff`).
+- Interchange: GAMS 54 `gdxdump` CSV (locked after spike for index-ordered elements).
+- Tick demo contracts: Plank `src/Tick.plk` (transient storage + `SetTick` event); Vectorized Multicaller for batching (`just evm-tick-test`).
