@@ -1,4 +1,5 @@
 ||| GDX → gdxdump CSV interchange (locked after spike for Multicall indexing).
+||| Param rows encode as Tick `setTick(uint256)` calldata; set rows skipped for Tick demo.
 module GdxCsv
 
 import Data.List
@@ -7,6 +8,7 @@ import Data.String
 import System
 import System.File
 
+import AbiMethod
 import MulticallBatch
 
 public export
@@ -23,25 +25,27 @@ data GdxElement
   = SetElem String String                 -- symbol, element
   | ParamElem String (List String) String -- symbol, keys, value
 
-||| Default smoke / placeholder target for encoded calls.
+||| Default smoke / placeholder target when `TICK_ADDRESS` unset.
 export
 defaultTarget : String
 defaultTarget = "0x0000000000000000000000000000000000000001"
 
-hexDigit : Int -> Char
-hexDigit n =
-  if n < 10 then chr (n + cast {to=Int} (ord '0'))
-  else chr (n - 10 + cast {to=Int} (ord 'a'))
-
-byteHex : Char -> String
-byteHex c =
-  let n = cast {to=Int} (ord c)
-  in pack [hexDigit (n `div` 16), hexDigit (n `mod` 16)]
-
-||| Trivial calldata encoding: 0x + hex of UTF-8 payload (smoke-grade).
+||| Resolve call target: `TICK_ADDRESS` env if set, else `defaultTarget`.
 export
-encodeData : String -> String
-encodeData s = "0x" ++ concatMap byteHex (unpack s)
+resolveTarget : IO String
+resolveTarget = do
+  Just t <- getEnv "TICK_ADDRESS"
+    | Nothing => pure defaultTarget
+  let t' = trim t
+  pure (if t' == "" then defaultTarget else t')
+
+||| Parse decimal integer string (digits only).
+export
+parseDecimal : String -> Maybe Integer
+parseDecimal s =
+  let chars = unpack (trim s)
+  in if null chars || any (not . isDigit) chars then Nothing
+     else Just (foldl (\acc, c => acc * 10 + cast {to=Integer} (ord c - ord '0')) 0 chars)
 
 runDump : String -> IO (Either String String)
 runDump cmd = do
@@ -136,21 +140,23 @@ gdxElements gdxPath = do
             GdxParam => parseParamCsv n csv
       go rest (acc ++ elems)
 
-elementPayload : GdxElement -> String
-elementPayload (SetElem sym e) = "set|" ++ sym ++ "|" ++ e
-elementPayload (ParamElem sym keys val) =
-  "par|" ++ sym ++ "|" ++ fastConcat (intersperse "," keys) ++ "|" ++ val
-
-||| Encode one GDX element as a Multicall Call (smoke encoding).
+||| Encode one GDX element as a Multicall Call when it maps to setTick.
+||| Set rows skipped; param Val must parse as decimal Integer.
 export
-elementToCall : GdxElement -> Call
-elementToCall el =
-  MkCall defaultTarget (encodeData (elementPayload el))
+elementToCall : String -> GdxElement -> Maybe Call
+elementToCall _ (SetElem _ _) = Nothing
+elementToCall target (ParamElem _ _ val) =
+  map (\n => MkCall target (abiMethodSetTick n)) (parseDecimal val)
 
-||| Build MulticallBatch by appending calls for elements index 0..n-1.
+||| Build MulticallBatch: param → setTick, sets skipped; preserves index order of kept calls.
 export
-elementsToBatch : List GdxElement -> MulticallBatch
-elementsToBatch = foldl (\b, el => appendCall b (elementToCall el)) emptyBatch
+elementsToBatch : String -> List GdxElement -> MulticallBatch
+elementsToBatch target =
+  foldl
+    (\b, el => case elementToCall target el of
+         Nothing => b
+         Just c => appendCall b c)
+    emptyBatch
 
 ||| GDX path → MulticallBatch (full consume job for publish).
 export
@@ -158,4 +164,5 @@ gdxToMulticallBatch : String -> IO (Either String MulticallBatch)
 gdxToMulticallBatch gdxPath = do
   Right elems <- gdxElements gdxPath
     | Left e => pure (Left e)
-  pure (Right (elementsToBatch elems))
+  target <- resolveTarget
+  pure (Right (elementsToBatch target elems))

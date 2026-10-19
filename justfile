@@ -32,7 +32,11 @@ publish-gdx:
 gdx-consume-test:
     #!/usr/bin/env bash
     set -euo pipefail
-    idris2 --source-dir src --source-dir test/src --output-dir build -o gdx-consume-test test/src/Main.idr
+    # Idris2 accepts one --source-dir; link library modules into test/src for imports.
+    for m in Abi AbiMethod MulticallBatch GdxCsv; do
+      ln -sfn "../../src/${m}.idr" "test/src/${m}.idr"
+    done
+    idris2 --source-dir test/src --output-dir build -o gdx-consume-test test/src/Main.idr
     build/gdx-consume-test
 
 publish-gdx-smoke: dispatcher
@@ -62,3 +66,35 @@ gdx-comptime-handshake-smoke:
     gams GdxComptimeHandshakeSmoke.gms action=ce o=build/GdxComptimeHandshakeSmoke.lst scrdir=build lo=2
     test -f build/handshake_smoke.gdx
     test -f build/handshake_smoke.ack
+
+# Foundry/Plank Tick + Multicaller mid-tx tests
+evm-tick-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd evm
+    forge test --match-contract TickTest -vv
+
+# Build Idris Anvil smoke binary
+anvil-tick-smoke-build:
+    idris2 --source-dir src --output-dir build -o anvil-tick-smoke src/AnvilTickSmoke.idr
+
+# Deploy Tick+Multicaller to Anvil and run Idris aggregate smoke
+anvil-tick-smoke: anvil-tick-smoke-build
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p build
+    if ! curl -sS -X POST -H 'Content-Type: application/json' \
+         --data '{"jsonrpc":"2.0","id":1,"method":"eth_blockNumber","params":[]}' \
+         "${ANVIL_RPC_URL:-http://127.0.0.1:8545}" >/dev/null 2>&1; then
+      echo "Anvil not reachable at ${ANVIL_RPC_URL:-http://127.0.0.1:8545}; start anvil first" >&2
+      exit 1
+    fi
+    cd evm
+    forge script script/DeployTick.s.sol:DeployTick --rpc-url "${ANVIL_RPC_URL:-http://127.0.0.1:8545}" \
+      --broadcast --private-key "${ANVIL_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}" -vv
+    cd ..
+    TICK_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["TICK_ADDRESS"])')
+    MULTICALLER_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["MULTICALLER_ADDRESS"])')
+    export TICK_ADDRESS MULTICALLER_ADDRESS
+    export ANVIL_RPC_URL="${ANVIL_RPC_URL:-http://127.0.0.1:8545}"
+    build/anvil-tick-smoke

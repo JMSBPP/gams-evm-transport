@@ -18,3 +18,14 @@ lib/exec/
 225*/
 .agent-out/
 vendor/
+
+# Symlinks created by `just gdx-consume-test`
+test/src/Abi.idr
+test/src/AbiMethod.idr
+test/src/MulticallBatch.idr
+test/src/GdxCsv.idr
+
+# Foundry
+evm/out/
+evm/cache/
+evm/broadcast/
