@@ -1,7 +1,2 @@
-dist-newstyle/
-.stack-work/
-rig/rig-manifest.json
-*.lst
-225*/
-**/volume_path.json
-**/volume_path.txt
+build/
+lib/exec/
