@@ -16,3 +16,16 @@ gdx-comptime-handshake-smoke:
     gams GdxComptimeHandshakeSmoke.gms action=ce o=build/GdxComptimeHandshakeSmoke.lst scrdir=build lo=2
     test -f build/handshake_smoke.gdx
     test -f build/handshake_smoke.ack
+
+# CommandList External Function library (publishGdx API artifact for consumers)
+dispatcher:
+    mkdir -p lib/exec
+    cc -fPIC -shared -o lib/exec/CommandDispatcher.so stdin/CommandDispatcher.c -Istdin
+
+publish-gdx:
+    idris2 --source-dir src --output-dir build -o publish-gdx src/PublishGdx.idr
+    build/publish-gdx
+
+publish-gdx-smoke: dispatcher
+    mkdir -p build
+    gams stdin/PublishGdxSmoke.gms action=ce
