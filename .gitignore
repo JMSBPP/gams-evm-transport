@@ -10,6 +10,9 @@ build/
 *.ttc
 *.ttm
 
+# External Function .so (just dispatcher)
+lib/exec/
+
 # Local worktrees / scratch
 .worktrees/
 225*/
