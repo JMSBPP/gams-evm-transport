@@ -25,6 +25,13 @@ test/src/AbiMethod.idr
 test/src/MulticallBatch.idr
 test/src/GdxCsv.idr
 
+# Symlinks for idris-tdd builds under .spec/ (one --source-dir)
+.spec/Abi.idr
+.spec/AbiMethod.idr
+.spec/AnvilRpc.idr
+.spec/GdxCsv.idr
+.spec/MulticallBatch.idr
+
 # Foundry
 evm/out/
 evm/cache/
