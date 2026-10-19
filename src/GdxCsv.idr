@@ -1,5 +1,7 @@
 ||| GDX → gdxdump CSV interchange (locked after spike for Multicall indexing).
 ||| Param rows encode as Tick `setTick(uint256)` calldata; set rows skipped for Tick demo.
+||| Signed Val (optional leading `-`) encodes as two's-complement wrap into uint256
+||| (\(n \bmod 2^{256}\)), same bits as Solidity `uint256(int256(n))`.
 module GdxCsv
 
 import Data.List
@@ -39,13 +41,25 @@ resolveTarget = do
   let t' = trim t
   pure (if t' == "" then defaultTarget else t')
 
-||| Parse decimal integer string (digits only).
+||| Parse decimal integer string: optional leading `-`, then digits only.
+||| Rejects `""`, `"-"`, `+`, mid-string non-digits.
 export
 parseDecimal : String -> Maybe Integer
 parseDecimal s =
   let chars = unpack (trim s)
-  in if null chars || any (not . isDigit) chars then Nothing
-     else Just (foldl (\acc, c => acc * 10 + cast {to=Integer} (ord c - ord '0')) 0 chars)
+  in case chars of
+       [] => Nothing
+       '-' :: [] => Nothing
+       '-' :: rest =>
+         if null rest || any (not . isDigit) rest then Nothing
+         else Just (negate (digitsToInt rest))
+       _ =>
+         if any (not . isDigit) chars then Nothing
+         else Just (digitsToInt chars)
+  where
+    digitsToInt : List Char -> Integer
+    digitsToInt =
+      foldl (\acc, c => acc * 10 + cast {to=Integer} (ord c - ord '0')) 0
 
 runDump : String -> IO (Either String String)
 runDump cmd = do
@@ -141,7 +155,8 @@ gdxElements gdxPath = do
       go rest (acc ++ elems)
 
 ||| Encode one GDX element as a Multicall Call when it maps to setTick.
-||| Set rows skipped; param Val must parse as decimal Integer.
+||| Set rows skipped; param Val must parse as signed decimal Integer
+||| (two's-complement uint256 wrap via `abiMethodSetTick` / `encodeUint256Word`).
 export
 elementToCall : String -> GdxElement -> Maybe Call
 elementToCall _ (SetElem _ _) = Nothing

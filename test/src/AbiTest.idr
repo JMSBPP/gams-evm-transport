@@ -16,6 +16,12 @@ goldenSetTick3 : String
 goldenSetTick3 =
   "0xfb972e510000000000000000000000000000000000000000000000000000000000000003"
 
+||| Two's-complement wrap of -1440 into uint256 word (same as `uint256(int256(-1440))`).
+export
+goldenSetTickNeg1440 : String
+goldenSetTickNeg1440 =
+  "0xfb972e51fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffa60"
+
 export
 testSetTick1 : Bool
 testSetTick1 = abiMethodSetTick 1 == goldenSetTick1
@@ -23,6 +29,22 @@ testSetTick1 = abiMethodSetTick 1 == goldenSetTick1
 export
 testSetTick3 : Bool
 testSetTick3 = abiMethodSetTick 3 == goldenSetTick3
+
+export
+testSetTickNeg1440 : Bool
+testSetTickNeg1440 = abiMethodSetTick (-1440) == goldenSetTickNeg1440
+
+export
+testParseDecimalNeg1440 : Bool
+testParseDecimalNeg1440 = parseDecimal "-1440" == Just (-1440)
+
+export
+testParseDecimalPos : Bool
+testParseDecimalPos = parseDecimal "3" == Just 3
+
+export
+testParseDecimalRejectsBareMinus : Bool
+testParseDecimalRejectsBareMinus = parseDecimal "-" == Nothing
 
 export
 testReadTickSel : Bool
@@ -49,6 +71,23 @@ testParamToSetTick3 =
   case elementToCall defaultTarget (ParamElem "p" [] "3") of
     Just (MkCall t d) => t == defaultTarget && d == goldenSetTick3
     Nothing => False
+
+||| Param Val `-1440` → nonempty call with wrapped setTick calldata.
+export
+testParamToSetTickNeg1440 : Bool
+testParamToSetTickNeg1440 =
+  case elementToCall defaultTarget (ParamElem "pathTickVal" ["k"] "-1440") of
+    Just (MkCall t d) => t == defaultTarget && d == goldenSetTickNeg1440
+    Nothing => False
+
+||| Negative Val participates in MulticallBatch (nonempty).
+export
+testNegValInBatch : Bool
+testNegValInBatch =
+  let b = elementsToBatch defaultTarget [ParamElem "p" [] "-1440"]
+  in case calls b of
+       [MkCall _ d] => d == goldenSetTickNeg1440
+       _ => False
 
 ||| Set elements do not produce calls.
 export

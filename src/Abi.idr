@@ -43,10 +43,22 @@ strip0x s =
     '0' :: 'X' :: rest => pack rest
     _ => s
 
+||| \(2^{256}\) for two's-complement wrap of signed Integers into uint256.
+uint256Modulus : Integer
+uint256Modulus =
+  0x10000000000000000000000000000000000000000000000000000000000000000
+
 ||| ABI word: 32-byte hex (64 chars), no `0x`.
+||| Negatives use two's-complement wrap: \(n \bmod 2^{256}\) (Solidity `uint256(int256(n))`).
 export
 encodeUint256Word : Integer -> String
-encodeUint256Word n = padLeft 64 (toHex (if n < 0 then 0 else n))
+encodeUint256Word n =
+  let wrapped =
+        if n >= 0 then n
+        else
+          let r = n `mod` uint256Modulus
+          in if r < 0 then r + uint256Modulus else r
+  in padLeft 64 (toHex wrapped)
 
 ||| ABI-encode a uint256 for calldata (word only, no selector).
 export
