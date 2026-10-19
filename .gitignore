@@ -1,2 +1,15 @@
-build/
+# GAMS
+*.lst
+*.log
+*.gdx
+utils/build/
 lib/exec/
+
+# Idris / pack
+build/
+*.ttc
+*.ttm
+
+# Local worktrees / scratch
+.worktrees/
+225*/
