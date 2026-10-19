@@ -1,7 +1,14 @@
-dist-newstyle/
-.stack-work/
-rig/rig-manifest.json
+# GAMS
 *.lst
+*.log
+*.gdx
+utils/build/
+
+# Idris / pack
+build/
+*.ttc
+*.ttm
+
+# Local worktrees / scratch
+.worktrees/
 225*/
-**/volume_path.json
-**/volume_path.txt
