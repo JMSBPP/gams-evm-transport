@@ -63,3 +63,13 @@ When `funcnr` is a function number, `query` is one of these:
 | 1001–1020 | Argument 1 through 20 | `1` if that argument may be an endogenous variable, `0` if it must be a constant | the argument’s name |
 
 The example begins every call with `*iv = -1` and `*pv = "Bad parameter(s)"`, then overwrites both when it recognizes the question.
+
+## [publishGdx](@stdin/CommandDispatcher.c)
+
+Extrinsic function `Function publishGdx /Commands.publishGdx/;` (library function number 1).
+
+- Not usable in equations (`NOTINEQU = 1`).
+- Zero numeric arguments (`ARGMIN = ARGMAX = 0`, `MAXDERIV = 0`). GAMS extrinsic callbacks only pass `double` arguments, so the GDX path is **not** an EF argument.
+- Path contract: immediately before the call, the caller writes a single-line path (absolute or cwd-relative) to `build/.gdx-publish-path`.
+- Evaluation blocks until an opaque external service reports consumed (via `just publish-gdx`); the scalar return is `0` = Consumed, nonzero = Failed.
+- Generic smoke handoff label: `gdx_handoff` (domain adapters may use names like `tickpath_handoff`).

@@ -1,6 +1,6 @@
 dispatcher:
     mkdir -p lib/exec
-    cc -fPIC -shared -o lib/exec/CommandDispatcher.so stdin/CommandDispatcher.c
+    cc -fPIC -shared -o lib/exec/CommandDispatcher.so stdin/CommandDispatcher.c -Istdin
 
 gams: dispatcher
     gams stdin/ExogenousInstanceRequest.gms
@@ -15,3 +15,11 @@ ping:
         py, "-c",
         "import subprocess; subprocess.check_call(['idris2','--source-dir','src','-q','-x','ping','src/Ping.idr'])",
     ])
+
+publish-gdx:
+    idris2 --source-dir src --output-dir build -o publish-gdx src/PublishGdx.idr
+    build/publish-gdx
+
+publish-gdx-smoke: dispatcher
+    mkdir -p build
+    gams stdin/PublishGdxSmoke.gms action=ce

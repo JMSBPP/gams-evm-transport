@@ -16,7 +16,7 @@ authors = "JMSBPP"
 -- depends =
 
 -- modules to install
-modules = StdFetcherCommandList, Ping
+modules = StdFetcherCommandList, Ping, PublishGdx
 
 -- main file (i.e. file to load at REPL)
 -- main =
