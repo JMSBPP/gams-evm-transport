@@ -28,7 +28,7 @@ carriers = ["ApplyResult"]
 operations = ["success", "failure"]
 laws = ["Exactly one of Success | Failure per apply"]
 refined = false
-notes = "Failure carries a diagnostic string"
+notes = "Success carries tx hash; Failure carries a diagnostic string"
 
 [OnChainApply.applyOnChain]
 module = "OnChainApply"
@@ -45,17 +45,18 @@ laws = [
 refined = false
 notes = "Addresses → MulticallBatch → IO ApplyResult"
 
-[PublishGdx.publishGdx]
-module = "PublishGdx"
+[Broadcast_tick_path.broadcast_tick_path]
+module = "Broadcast_tick_path"
 kind = "plain"
-file = "PublishGdx.idr"
+file = "Broadcast_tick_path.idr"
 carriers = ["GdxPath", "MulticallBatch", "Addresses", "Success"]
-operations = ["publishGdx"]
+operations = ["broadcast_tick_path"]
 laws = [
   "Exit 0 ⇔ applyOnChain Success (JSON alone insufficient)",
   "Nonempty batch required",
   "applyOnChain Failure → nonzero",
   "JSON written before apply when batch builds",
+  "Success stdout includes 0x tx hash and call count",
 ]
 invalid_states = [
   "Missing / empty / nonexistent GDX path",
@@ -64,4 +65,4 @@ invalid_states = [
   "applyOnChain Failure",
 ]
 refined = false
-notes = "Issue #15 thin pipeline; first behavior = tiny GDX → exit 0 only after Anvil Success"
+notes = "Issue #17 rename of publishGdx; logs Multicaller tx hash"

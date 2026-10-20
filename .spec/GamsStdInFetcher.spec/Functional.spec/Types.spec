@@ -64,16 +64,16 @@ When `funcnr` is a function number, `query` is one of these:
 
 The example begins every call with `*iv = -1` and `*pv = "Bad parameter(s)"`, then overwrites both when it recognizes the question.
 
-## [publishGdx](@stdin/CommandDispatcher.c)
+## [broadcast_tick_path](@stdin/CommandDispatcher.c)
 
-Extrinsic function `Function publishGdx /Commands.publishGdx/;` (library function number 1).
+Extrinsic function `Function broadcast_tick_path /Commands.broadcast_tick_path/;` (library function number 1).
 
 - Not usable in equations (`NOTINEQU = 1`).
 - Zero numeric arguments (`ARGMIN = ARGMAX = 0`, `MAXDERIV = 0`). GAMS extrinsic callbacks only pass `double` arguments, so the GDX path is **not** an EF argument.
 - Path contract: immediately before the call, the caller writes a single-line path (absolute or cwd-relative) to `build/.gdx-publish-path`.
-- Evaluation blocks until an opaque external service reports consumed (via `just publish-gdx`); the scalar return is `0` = Consumed, nonzero = Failed.
+- Evaluation blocks until an opaque external service reports consumed (via `just broadcast_tick_path`); the scalar return is `0` = Consumed, nonzero = Failed.
 - **Consumed** means the full job finished: GDX path from sidecar → `gdxdump` CSV → ordered `MulticallBatch` (`{target, data}[]`) **and** one Multicaller `aggregate` tx successfully applied every batch call (`applyOnChain` Success). Param rows encode as Tick `setTick(uint256)` calldata; set rows skipped for the Tick demo. Signed param Vals (optional leading `-`) encode as two's-complement wrap into uint256 (\(n \bmod 2^{256}\)), same bits as Solidity `uint256(int256(n))`. Intermediate steps (file presence, dump alone, JSON alone) are **not** success.
-- On success the service writes `build/multicall-batch.json` (artifact) and completes on-chain apply. Requires live RPC + `TICK_ADDRESS` / `MULTICALLER_ADDRESS` (env or deploy addresses).
+- On success the service writes `build/multicall-batch.json` (artifact), completes on-chain apply, and prints `broadcast_tick_path ok <txHash> calls=<n>` (`eth_sendTransaction` result). Requires live RPC + `TICK_ADDRESS` / `MULTICALLER_ADDRESS` (env or deploy addresses).
 - Generic smoke handoff label: `gdx_handoff` (domain adapters may use names like `tickpath_handoff`).
 - Interchange: GAMS 54 `gdxdump` CSV (locked after spike for index-ordered elements).
 - Tick demo contracts: Plank `src/Tick.plk` (transient storage + `SetTick` event); Vectorized Multicaller for batching (`just evm-tick-test`).

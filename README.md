@@ -1,14 +1,14 @@
 # gams-evm-transport
 
-GAMS extrinsic `publishGdx` builds a web3 `MulticallBatch` from a GDX file and applies every Tick `setTick` call in **one** Multicaller `aggregate` transaction. Exit `0` (**Consumed**) means on-chain apply succeeded—not merely that `build/multicall-batch.json` was written.
+GAMS extrinsic `broadcast_tick_path` builds a web3 `MulticallBatch` from a GDX file and applies every Tick `setTick` call in **one** Multicaller `aggregate` transaction. Exit `0` (**Consumed**) means on-chain apply succeeded—not merely that `build/multicall-batch.json` was written. On Success the service prints the Multicaller tx hash (`broadcast_tick_path ok 0x… calls=n`).
 
 ## Prerequisites
 
 | Tool | Role |
 |------|------|
-| [GAMS](https://www.gams.com/) 54+ | Model + extrinsic `publishGdx` |
-| [Idris 2](https://idris2.readthedocs.io/) | `just publish-gdx` consumer service |
-| [just](https://github.com/casey/just) | Recipes (`dispatcher`, `publish-gdx`, …) |
+| [GAMS](https://www.gams.com/) 54+ | Model + extrinsic `broadcast_tick_path` |
+| [Idris 2](https://idris2.readthedocs.io/) | `just broadcast_tick_path` consumer service |
+| [just](https://github.com/casey/just) | Recipes (`dispatcher`, `broadcast_tick_path`, …) |
 | [Foundry](https://book.getfoundry.sh/) (`anvil`, `forge`) | Local chain + Tick/Multicaller deploy |
 | `gdxdump` | Shipped with GAMS; used by the Idris GDX path |
 | `curl` | JSON-RPC from Idris |
@@ -22,71 +22,38 @@ Run all `just` recipes from the **repository root**.
 3. Param rows → Tick `setTick(uint256)` calldata (sets skipped)
 4. Write `build/multicall-batch.json` (artifact)
 5. `eth_sendTransaction` Multicaller `aggregate` with every target = Tick
-6. Exit `0` only if that RPC/tx succeeds
+6. Print the tx hash and call count; exit `0` only if that RPC/tx succeeds
 
 Signed param values (e.g. `-1440`) are accepted and encoded as two’s-complement wrap into `uint256` (same bits as Solidity `uint256(int256(n))`).
 
 ## Consumer quick start
 
-### 1. Build the extrinsic library
+The only hard requirement is global env: `TICK_ADDRESS`, `MULTICALLER_ADDRESS`, and (if not default) `ANVIL_RPC_URL`. `broadcast_tick_path` fail-closes if Tick/Multicaller addresses are missing.
 
-```bash
-just dispatcher
-# → lib/exec/CommandDispatcher.so
-```
+### Call `broadcast_tick_path` from GAMS
 
-### 2. Start Anvil and deploy Tick + Multicaller
-
-```bash
-anvil --port 8545   # leave running
-
-cd evm
-forge script script/DeployTick.s.sol:DeployTick \
-  --rpc-url "${ANVIL_RPC_URL:-http://127.0.0.1:8545}" \
-  --broadcast \
-  --private-key "${ANVIL_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}" \
-  -vv
-cd ..
-```
-
-Deploy writes `build/anvil-addresses.json` with `TICK_ADDRESS` and `MULTICALLER_ADDRESS`.
-
-### 3. Export addresses for publish
-
-```bash
-export ANVIL_RPC_URL="${ANVIL_RPC_URL:-http://127.0.0.1:8545}"
-export TICK_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["TICK_ADDRESS"])')
-export MULTICALLER_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["MULTICALLER_ADDRESS"])')
-# optional: ANVIL_FROM (defaults to Anvil account #0)
-```
-
-`publishGdx` fail-closes if Tick/Multicaller addresses are missing.
-
-### 4. Call `publishGdx` from GAMS
-
-From a model whose working directory is the repo root (so `just publish-gdx` and `build/` resolve):
+From a model whose working directory is the repo root (so `just broadcast_tick_path` and `build/` resolve):
 
 ```gms
 $funcLibIn Commands ./lib/exec/CommandDispatcher.so
-Function publishGdx /Commands.publishGdx/;
+Function broadcast_tick_path /Commands.broadcast_tick_path/;
 
 * … fill sets/parameters …
 execute_unload 'build/my.gdx', mySet, myParam;
 
 execute 'printf "%s\n" "build/my.gdx" > build/.gdx-publish-path';
 Scalar publishStatus;
-publishStatus = publishGdx;
-abort$(publishStatus <> 0) 'publishGdx failed';
+publishStatus = broadcast_tick_path;
+abort$(publishStatus <> 0) 'broadcast_tick_path failed';
 ```
 
-Reference smoke: [`stdin/PublishGdxSmoke.gms`](stdin/PublishGdxSmoke.gms).
+Reference smoke: [`stdin/BroadcastTickPathSmoke.gms`](stdin/BroadcastTickPathSmoke.gms).
 
 ```bash
-# with Anvil up and env from step 3:
-just publish-gdx-smoke
+just broadcast_tick_path-smoke
 ```
 
-### 5. Inspect the batch artifact (optional)
+### Inspect the batch artifact (optional)
 
 On success, `build/multicall-batch.json` looks like:
 
@@ -94,7 +61,7 @@ On success, `build/multicall-batch.json` looks like:
 {"calls":[{"target":"0x…","data":"0xfb972e51…"}, …]}
 ```
 
-Useful for off-chain inspection; **not** sufficient for Consumed by itself.
+Useful for off-chain inspection; **not** sufficient for Consumed by itself. The processed Multicaller tx hash is on stdout.
 
 ## Environment variables
 
@@ -120,8 +87,8 @@ Domain adapters (e.g. TickPath handoff labels) live in the consumer repo; this t
 | Recipe | What it does |
 |--------|----------------|
 | `just dispatcher` | Build `CommandDispatcher.so` |
-| `just publish-gdx` | Run Idris publish service once (needs path file + env) |
-| `just publish-gdx-smoke` | End-to-end GAMS smoke (needs Anvil + addresses) |
+| `just broadcast_tick_path` | Run Idris broadcast service once (needs path file + env) |
+| `just broadcast_tick_path-smoke` | End-to-end GAMS smoke (needs Anvil + addresses) |
 | `just gdx-consume-test` | Idris unit tests (ABI / GdxCsv / batch) |
 | `just evm-tick-test` | Foundry mid-tx Tick + Multicaller tests |
 | `just anvil-tick-smoke` | Deploy + Idris aggregate smoke (hardcoded ticks) |
@@ -130,4 +97,4 @@ GAMS unload helpers: see [`utils/README.md`](utils/README.md) (`GdxWriter`, `Gdx
 
 ## Spec pointer
 
-Formal EF / Consumed contract: [`.spec/GamsStdInFetcher.spec/Functional.spec/Types.spec`](.spec/GamsStdInFetcher.spec/Functional.spec/Types.spec) (`publishGdx` section).
+Formal EF / Consumed contract: [`.spec/GamsStdInFetcher.spec/Functional.spec/Types.spec`](.spec/GamsStdInFetcher.spec/Functional.spec/Types.spec) (`broadcast_tick_path` section).

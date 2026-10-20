@@ -80,11 +80,11 @@ EXTRFUNC_API int EXTRFUNC_CALLCONV querylibrary(int funcnr, int query, int *iv, 
     switch ((EXTRFUNC_FUNCQUERY)query) {
     case EXTRFUNC_FUNCQUERY_FUNCNAME:
         *iv = 0;
-        *pv = "publishGdx";
+        *pv = "broadcast_tick_path";
         break;
     case EXTRFUNC_FUNCQUERY_FUNCDESCR:
         *iv = 0;
-        *pv = "Publish GDX path from build/.gdx-publish-path; block until consumed";
+        *pv = "Broadcast GDX Tick path from build/.gdx-publish-path; block until consumed";
         break;
     case EXTRFUNC_FUNCQUERY_NOTINEQU:
         *iv = 1;
@@ -116,7 +116,7 @@ EXTRFUNC_API int EXTRFUNC_CALLCONV querylibrary(int funcnr, int query, int *iv, 
     return EXTRFUNC_QUERYRETURN_OK;
 }
 
-EXTRFUNC_DECL_FUNCCALL(publishGdx)
+EXTRFUNC_DECL_FUNCCALL(broadcast_tick_path)
 {
     char msg[EXTRFUNC_STRSIZE];
     int st;
@@ -129,14 +129,14 @@ EXTRFUNC_DECL_FUNCCALL(publishGdx)
     (void)hessian;
 
     if (nargs != 0) {
-        sprintf(msg + 1, "publishGdx: zero arguments expected. Called with %d", nargs);
+        sprintf(msg + 1, "broadcast_tick_path: zero arguments expected. Called with %d", nargs);
         msg[0] = (char)strlen(msg + 1);
         return errorcallback(EXTRFUNC_RETURN_FUNCTION, EXTRFUNC_EVALERROR_DOMAIN, msg, errorcbmem);
     }
 
-    st = system("just publish-gdx");
+    st = system("just broadcast_tick_path");
     if (st == -1) {
-        sprintf(msg + 1, "publishGdx: failed to invoke just publish-gdx");
+        sprintf(msg + 1, "broadcast_tick_path: failed to invoke just broadcast_tick_path");
         msg[0] = (char)strlen(msg + 1);
         return errorcallback(EXTRFUNC_RETURN_SYSTEM, EXTRFUNC_EVALERROR_NONE, msg, errorcbmem);
     }

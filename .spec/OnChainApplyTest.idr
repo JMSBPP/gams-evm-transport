@@ -11,6 +11,7 @@
 ||| $$
 module OnChainApplyTest
 
+import Data.List
 import Data.String
 import System
 
@@ -56,9 +57,14 @@ main = do
           ]
   result <- applyOnChain addrs batch
   case result of
-    Success => do
-      putStrLn "onchain-apply nonempty setTick → Success"
-      exitSuccess
+    Success txHash =>
+      if isPrefixOf (unpack "0x") (unpack txHash) && length txHash == 66
+        then do
+          putStrLn ("onchain-apply nonempty setTick → Success " ++ txHash)
+          exitSuccess
+        else do
+          putStrLn ("expected 0x tx hash, got: " ++ txHash)
+          exitFailure
     Failure reason => do
       putStrLn ("expected Success, got Failure: " ++ reason)
       exitFailure

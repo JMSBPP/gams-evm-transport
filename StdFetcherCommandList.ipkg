@@ -16,7 +16,7 @@ authors = "JMSBPP"
 -- depends =
 
 -- modules to install
-modules = StdFetcherCommandList, Ping, MulticallBatch, GdxCsv, PublishGdx
+modules = StdFetcherCommandList, Ping, MulticallBatch, GdxCsv, Broadcast_tick_path
 
 -- main file (i.e. file to load at REPL)
 -- main =

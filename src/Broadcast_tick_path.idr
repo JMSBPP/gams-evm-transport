@@ -7,7 +7,7 @@
 |||
 ||| Operation:
 ||| $$
-||| \mathrm{publishGdx} : \mathrm{IO}\,()
+||| \mathrm{broadcast\_tick\_path} : \mathrm{IO}\,()
 ||| $$
 ||| GDX path $\to$ batch $\to$ write JSON $\to$ $\mathrm{applyOnChain}$ $\to$ exit $0$ iff Success.
 |||
@@ -18,7 +18,7 @@
 ||| 4. JSON still written before apply when batch builds.
 |||
 ||| Invalid: missing GDX path; dump/empty batch; bad Addresses; apply Failure.
-module PublishGdx
+module Broadcast_tick_path
 
 import Data.List
 import Data.String
@@ -76,29 +76,48 @@ resolveAddresses = do
   pure (Just (mkAddresses url tick multicaller from))
 
 ||| Consumed (exit 0) only after GDX → batch → JSON → applyOnChain Success.
-||| types.toml: PublishGdx.publishGdx
+||| types.toml: Broadcast_tick_path.broadcast_tick_path
 export
-publishGdx : IO ()
-publishGdx = do
+broadcast_tick_path : IO ()
+broadcast_tick_path = do
   Right raw <- readFile "build/.gdx-publish-path"
-    | Left _ => exitFailure
+    | Left _ => do
+        putStrLn "broadcast_tick_path failed: missing GDX path file"
+        exitFailure
   let path = trim raw
   False <- pure (path == "")
-    | True => exitFailure
+    | True => do
+        putStrLn "broadcast_tick_path failed: empty GDX path"
+        exitFailure
   True <- exists path
-    | False => exitFailure
+    | False => do
+        putStrLn ("broadcast_tick_path failed: GDX not found: " ++ path)
+        exitFailure
   Right batch <- gdxToMulticallBatch path
-    | Left _ => exitFailure
+    | Left err => do
+        putStrLn ("broadcast_tick_path failed: " ++ err)
+        exitFailure
   let False = null (calls batch)
-    | True => exitFailure
+    | True => do
+        putStrLn "broadcast_tick_path failed: empty batch"
+        exitFailure
   Right _ <- writeFile "build/multicall-batch.json" (batchToJson batch)
-    | Left _ => exitFailure
+    | Left err => do
+        putStrLn ("broadcast_tick_path failed: " ++ show err)
+        exitFailure
   Just addrs <- resolveAddresses
-    | Nothing => exitFailure
+    | Nothing => do
+        putStrLn "broadcast_tick_path failed: missing TICK_ADDRESS / MULTICALLER_ADDRESS"
+        exitFailure
   result <- applyOnChain addrs batch
+  let n = length (calls batch)
   case result of
-    Success => exitSuccess
-    Failure _ => exitFailure
+    Success txHash => do
+      putStrLn ("broadcast_tick_path ok " ++ txHash ++ " calls=" ++ show n)
+      exitSuccess
+    Failure reason => do
+      putStrLn ("broadcast_tick_path failed: " ++ reason)
+      exitFailure
 
 main : IO ()
-main = publishGdx
+main = broadcast_tick_path

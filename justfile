@@ -1,4 +1,4 @@
-# CommandList External Function library (publishGdx API artifact for consumers)
+# CommandList External Function library (broadcast_tick_path API artifact for consumers)
 dispatcher:
     mkdir -p lib/exec
     cc -fPIC -shared -o lib/exec/CommandDispatcher.so stdin/CommandDispatcher.c -Istdin
@@ -25,9 +25,9 @@ gdx-schema:
     pack run json-schema -- schema/MulticallBatch.json
     # Generator emits module Main under schema/; clean API lives in src/MulticallBatch.idr
 
-publish-gdx:
-    idris2 --source-dir src --output-dir build -o publish-gdx src/PublishGdx.idr
-    build/publish-gdx
+broadcast_tick_path:
+    idris2 --source-dir src --output-dir build -o broadcast_tick_path src/Broadcast_tick_path.idr
+    build/broadcast_tick_path
 
 gdx-consume-test:
     #!/usr/bin/env bash
@@ -39,14 +39,17 @@ gdx-consume-test:
     idris2 --source-dir test/src --output-dir build -o gdx-consume-test test/src/Main.idr
     build/gdx-consume-test
 
-publish-gdx-smoke: dispatcher
+broadcast_tick_path-smoke: dispatcher
     #!/usr/bin/env bash
     set -euo pipefail
     mkdir -p build
     rm -f build/multicall-batch.json build/.gdx-publish-path
-    gams stdin/PublishGdxSmoke.gms action=ce
+    gams stdin/BroadcastTickPathSmoke.gms action=ce o=build/BroadcastTickPathSmoke.lst \
+      | tee build/broadcast_tick_path-smoke.out
     test -f build/multicall-batch.json
     grep -q '"calls"' build/multicall-batch.json
+    grep -qE 'broadcast_tick_path ok 0x[0-9a-fA-F]{64}' build/broadcast_tick_path-smoke.out \
+      || grep -qE 'broadcast_tick_path ok 0x[0-9a-fA-F]{64}' build/BroadcastTickPathSmoke.lst
 
 gdx-writer-smoke:
     #!/usr/bin/env bash
