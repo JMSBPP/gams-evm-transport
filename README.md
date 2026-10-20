@@ -28,7 +28,7 @@ Signed param values (e.g. `-1440`) are accepted and encoded as two’s-complemen
 
 ## Consumer quick start
 
-The only hard requirement is global env: `TICK_ADDRESS`, `MULTICALLER_ADDRESS`, and (if not default) `ANVIL_RPC_URL`. `broadcast_tick_path` fail-closes if Tick/Multicaller addresses are missing.
+The only hard requirement is global env: `APP_ADDRESS`, `MULTICALLER_ADDRESS`, and (if not default) `ANVIL_RPC_URL`. `broadcast_tick_path` fail-closes if those addresses are missing.
 
 ### Call `broadcast_tick_path` from GAMS
 
@@ -67,7 +67,7 @@ Useful for off-chain inspection; **not** sufficient for Consumed by itself. The 
 
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
-| `TICK_ADDRESS` | yes | — | Tick contract for `setTick` / aggregate targets |
+| `APP_ADDRESS` | yes | — | App contract for `setTick` / aggregate targets |
 | `MULTICALLER_ADDRESS` | yes | — | Vectorized Multicaller for `aggregate` |
 | `ANVIL_RPC_URL` | no | `http://127.0.0.1:8545` | JSON-RPC endpoint |
 | `ANVIL_FROM` | no | Anvil account #0 | `eth_sendTransaction` `from` |

@@ -63,7 +63,7 @@ resolveAddresses = do
       | Nothing => pure defaultRpcUrl
     let u' = trim u
     pure (if u' == "" then defaultRpcUrl else u')
-  Just tick <- requireEnv "TICK_ADDRESS"
+  Just tick <- requireEnv "APP_ADDRESS"
     | Nothing => pure Nothing
   Just multicaller <- requireEnv "MULTICALLER_ADDRESS"
     | Nothing => pure Nothing
@@ -107,7 +107,7 @@ broadcast_tick_path = do
         exitFailure
   Just addrs <- resolveAddresses
     | Nothing => do
-        putStrLn "broadcast_tick_path failed: missing TICK_ADDRESS / MULTICALLER_ADDRESS"
+        putStrLn "broadcast_tick_path failed: missing APP_ADDRESS / MULTICALLER_ADDRESS"
         exitFailure
   result <- applyOnChain addrs batch
   let n = length (calls batch)

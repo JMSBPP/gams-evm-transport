@@ -1,5 +1,5 @@
 ||| Anvil smoke: Multicaller.aggregate with ≥2 setTick datas targeting Tick.
-||| Env: ANVIL_RPC_URL, TICK_ADDRESS, MULTICALLER_ADDRESS; optional ANVIL_FROM.
+||| Env: ANVIL_RPC_URL, APP_ADDRESS, MULTICALLER_ADDRESS; optional ANVIL_FROM.
 module AnvilTickSmoke
 
 import Data.List
@@ -29,7 +29,7 @@ main = do
       | Nothing => pure defaultRpcUrl
     let u' = trim u
     pure (if u' == "" then defaultRpcUrl else u')
-  tick <- requireEnv "TICK_ADDRESS"
+  tick <- requireEnv "APP_ADDRESS"
   multicaller <- requireEnv "MULTICALLER_ADDRESS"
   from <- do
     Just f <- getEnv "ANVIL_FROM"

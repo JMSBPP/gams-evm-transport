@@ -14,7 +14,7 @@ contract DeployTick is Script, PlankDeployer {
         vm.stopBroadcast();
 
         string memory json = string.concat(
-            "{\"TICK_ADDRESS\":\"",
+            "{\"APP_ADDRESS\":\"",
             vm.toString(tick),
             "\",\"MULTICALLER_ADDRESS\":\"",
             vm.toString(address(multicaller)),
@@ -22,7 +22,7 @@ contract DeployTick is Script, PlankDeployer {
         );
         vm.createDir("../build", true);
         vm.writeFile("../build/anvil-addresses.json", json);
-        console2.log("TICK_ADDRESS", tick);
+        console2.log("APP_ADDRESS", tick);
         console2.log("MULTICALLER_ADDRESS", address(multicaller));
     }
 }

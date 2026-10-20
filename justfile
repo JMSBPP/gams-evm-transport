@@ -96,8 +96,8 @@ anvil-tick-smoke: anvil-tick-smoke-build
     forge script script/DeployTick.s.sol:DeployTick --rpc-url "${ANVIL_RPC_URL:-http://127.0.0.1:8545}" \
       --broadcast --private-key "${ANVIL_PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}" -vv
     cd ..
-    TICK_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["TICK_ADDRESS"])')
+    APP_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["APP_ADDRESS"])')
     MULTICALLER_ADDRESS=$(python3 -c 'import json;print(json.load(open("build/anvil-addresses.json"))["MULTICALLER_ADDRESS"])')
-    export TICK_ADDRESS MULTICALLER_ADDRESS
+    export APP_ADDRESS MULTICALLER_ADDRESS
     export ANVIL_RPC_URL="${ANVIL_RPC_URL:-http://127.0.0.1:8545}"
     build/anvil-tick-smoke

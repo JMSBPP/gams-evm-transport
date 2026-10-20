@@ -41,7 +41,7 @@ main = do
       | Nothing => pure defaultRpcUrl
     let u' = trim u
     pure (if u' == "" then defaultRpcUrl else u')
-  tick <- requireEnv "TICK_ADDRESS"
+  tick <- requireEnv "APP_ADDRESS"
   multicaller <- requireEnv "MULTICALLER_ADDRESS"
   from <- do
     Just f <- getEnv "ANVIL_FROM"

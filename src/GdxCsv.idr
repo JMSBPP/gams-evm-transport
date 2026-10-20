@@ -27,16 +27,16 @@ data GdxElement
   = SetElem String String                 -- symbol, element
   | ParamElem String (List String) String -- symbol, keys, value
 
-||| Default smoke / placeholder target when `TICK_ADDRESS` unset.
+||| Default smoke / placeholder target when `APP_ADDRESS` unset.
 export
 defaultTarget : String
 defaultTarget = "0x0000000000000000000000000000000000000001"
 
-||| Resolve call target: `TICK_ADDRESS` env if set, else `defaultTarget`.
+||| Resolve call target: `APP_ADDRESS` env if set, else `defaultTarget`.
 export
 resolveTarget : IO String
 resolveTarget = do
-  Just t <- getEnv "TICK_ADDRESS"
+  Just t <- getEnv "APP_ADDRESS"
     | Nothing => pure defaultTarget
   let t' = trim t
   pure (if t' == "" then defaultTarget else t')
